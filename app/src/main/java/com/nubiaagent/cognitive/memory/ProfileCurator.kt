@@ -131,14 +131,21 @@ class ProfileCurator(
 
                 // Paso 4: Indexar hechos en Deep Archive (vectorial)
                 for (fact in newFacts) {
-                    val embedding = vectorEngine.generateEmbedding(fact.content)
                     val factId = memoryManager.storeFact(
                         content = fact.content,
                         category = fact.category,
                         importance = fact.importance,
                         source = "profile_curation"
                     )
-                    // El storeFact ya indexa en DeepArchive vía MemoryManager
+                    // Indexar en el motor vectorial
+                    val embedding = vectorEngine.generateEmbedding(fact.content)
+                    vectorEngine.index(
+                        factId = factId,
+                        content = fact.content,
+                        category = fact.category,
+                        importance = fact.importance,
+                        embedding = embedding
+                    )
                 }
 
                 // Paso 5: Detectar patrones
@@ -574,9 +581,8 @@ LIVING PROFILE ACTUALIZADO:"""
                     val factB = facts[j]
 
                     if (factA.embedding != null && factB.embedding != null) {
-                        val embeddingA = vectorEngine.generateEmbedding(factA.content)
-                        val embeddingB = vectorEngine.generateEmbedding(factB.content)
-                        val similarity = cosineSim(embeddingA, embeddingB)
+                        // Comparar embeddings directamente (ambos son ByteArray)
+                        val similarity = cosineSimByte(factA.embedding!!, factB.embedding!!)
 
                         if (similarity > 0.95f) {
                             // Fusionar: eliminar el de menor importancia
@@ -603,6 +609,24 @@ LIVING PROFILE ACTUALIZADO:"""
         for (i in a.indices) { dot += a[i]*b[i]; normA += a[i]*a[i]; normB += b[i]*b[i] }
         val d = kotlin.math.sqrt(normA) * kotlin.math.sqrt(normB)
         return if (d > 0f) dot / d else 0f
+    }
+
+    /**
+     * Similitud coseno entre dos ByteArrays (embeddings almacenados como BLOB).
+     * Convierte los bytes a FloatArrays little-endian antes de comparar.
+     */
+    private fun cosineSimByte(a: ByteArray, b: ByteArray): Float {
+        val fa = byteArrayToFloatArray(a)
+        val fb = byteArrayToFloatArray(b)
+        return cosineSim(fa, fb)
+    }
+
+    private fun byteArrayToFloatArray(bytes: ByteArray): FloatArray {
+        val buffer = java.nio.ByteBuffer.wrap(bytes)
+        buffer.order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        val floats = FloatArray(bytes.size / 4)
+        for (i in floats.indices) floats[i] = buffer.getFloat()
+        return floats
     }
 
     fun destroy() {

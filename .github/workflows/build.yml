@@ -34,7 +34,7 @@ jobs:
       run: chmod +x gradlew
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon
+      run: ./gradlew assembleDebug --no-daemon --stacktrace
 
     - name: Build Release APK
       run: ./gradlew assembleRelease --no-daemon

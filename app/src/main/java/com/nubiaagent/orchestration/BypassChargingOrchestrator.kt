@@ -369,7 +369,7 @@ class BypassChargingOrchestrator(
                 addAction(Intent.ACTION_POWER_DISCONNECTED)
             }
 
-            val receiver = android.content.BroadcastReceiver() {
+            val receiver = object : android.content.BroadcastReceiver() {
                 override fun onReceive(ctx: Context, intent: Intent) {
                     when (intent.action) {
                         ZTE_BYPASS_ACTION -> {

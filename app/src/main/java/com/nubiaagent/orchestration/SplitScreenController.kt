@@ -120,18 +120,16 @@ class SplitScreenController(private val context: Context) {
                 Rect(0, splitY, screenWidth, screenHeight)
             }
 
-            // Lanzar Canvas en su bounds
+            // Lanzar Canvas como Service con bounds info
             val canvasIntent = Intent(context, com.nubiaagent.ui.canvas.CanvasController::class.java).apply {
                 action = "SHOW"
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY)
+                putExtra("launch_left", canvasBounds.left)
+                putExtra("launch_top", canvasBounds.top)
+                putExtra("launch_right", canvasBounds.right)
+                putExtra("launch_bottom", canvasBounds.bottom)
             }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val launcherBounds = canvasBounds
-                canvasIntent.putExtra(android.window.SizeClass_bounds, launcherBounds)
-            }
-
-            context.startActivity(canvasIntent)
+            context.startService(canvasIntent)
             isSplitActive = true
             Log.i(TAG, "Split screen via launchBounds (ratio: $ratio)")
             return true

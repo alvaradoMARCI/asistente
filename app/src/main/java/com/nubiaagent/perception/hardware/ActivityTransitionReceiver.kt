@@ -52,10 +52,21 @@ class ActivityTransitionReceiver : BroadcastReceiver() {
             // Emitir evento al PerceptionBus
             try {
                 PerceptionBus.emit(
-                    PerceptionEvent.UserActivityUpdate(
-                        activity = activityName,
-                        confidence = 0.8f,
-                        timestamp = System.currentTimeMillis()
+                    PerceptionEvent.HardwareStateUpdate(
+                        batteryLevel = -1,
+                        isCharging = false,
+                        isBypassCharging = false,
+                        latitude = null,
+                        longitude = null,
+                        currentActivity = when (activityName) {
+                            "IN_VEHICLE" -> com.nubiaagent.core.UserActivity.DRIVING
+                            "ON_BICYCLE" -> com.nubiaagent.core.UserActivity.CYCLING
+                            "WALKING" -> com.nubiaagent.core.UserActivity.WALKING
+                            "RUNNING" -> com.nubiaagent.core.UserActivity.RUNNING
+                            "STILL" -> com.nubiaagent.core.UserActivity.STILL
+                            else -> com.nubiaagent.core.UserActivity.UNKNOWN
+                        },
+                        stepCount = 0
                     )
                 )
             } catch (e: Exception) {

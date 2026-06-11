@@ -95,7 +95,7 @@ class MemoryManager private constructor(private val context: Context) {
                     NubiaDatabase::class.java,
                     DB_NAME
                 )
-                    .fallbackToDestructiveMigration(true)
+                    .fallbackToDestructiveMigration()
                     .build()
 
                 // Inicializar Deep Archive
@@ -189,8 +189,8 @@ class MemoryManager private constructor(private val context: Context) {
         category: String = "fact",
         importance: Float = 0.5f,
         source: String = "conversation"
-    ) {
-        withContext(Dispatchers.IO) {
+    ): Long {
+        return withContext(Dispatchers.IO) {
             try {
                 // Generar embedding para búsqueda semántica
                 val embedding = deepArchive?.generateEmbedding(content)
@@ -212,8 +212,10 @@ class MemoryManager private constructor(private val context: Context) {
 
                 Log.d(TAG, "Hecho almacenado: '$content' (cat: $category, imp: $importance)")
 
+                id
             } catch (e: Exception) {
                 Log.e(TAG, "Error almacenando hecho", e)
+                -1L
             }
         }
     }
