@@ -4,6 +4,19 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// Leer API keys desde secrets.properties (no se sube a GitHub)
+val secretsFile = rootProject.file("secrets.properties")
+val secrets = if (secretsFile.exists()) {
+    java.util.Properties().apply { load(secretsFile.inputStream()) }
+} else {
+    java.util.Properties().apply {
+        // Valores vacíos para CI - se inyectan via GitHub Secrets
+        setProperty("GEMINI_API_KEY", System.getenv("GEMINI_API_KEY") ?: "")
+        setProperty("GROQ_API_KEY", System.getenv("GROQ_API_KEY") ?: "")
+        setProperty("OPENAI_API_KEY", System.getenv("OPENAI_API_KEY") ?: "")
+    }
+}
+
 android {
     namespace = "com.nubiaagent"
     compileSdk = 34
@@ -12,14 +25,19 @@ android {
         applicationId = "com.nubiaagent"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "4.0.0-alpha"
+        versionCode = 4
+        versionName = "dayana-v4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
+
+        // Inyectar API keys en BuildConfig
+        buildConfigField("String", "GEMINI_API_KEY", "\"${secrets.getProperty("GEMINI_API_KEY", "")}\"")
+        buildConfigField("String", "GROQ_API_KEY", "\"${secrets.getProperty("GROQ_API_KEY", "")}\"")
+        buildConfigField("String", "OPENAI_API_KEY", "\"${secrets.getProperty("OPENAI_API_KEY", "")}\"")
     }
 
     buildTypes {
@@ -48,6 +66,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     // Optimizaciones para Unisoc T8300 / NeoTurbo

@@ -15,10 +15,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * AgentLoop: Orquestador de Razonamiento Agéntico para NubiaAgent.
+ * AgentLoop: Orquestador de Razonamiento Agéntico para Dayana.
  *
  * Implementa el ciclo fundamental **Pensar → Actuar → Observar** que
- * convierte a NubiaAgent de un chatbot reactivo a un agente autónomo
+ * convierte a Dayana de un chatbot reactivo a un agente autónomo
  * capaz de descomponer tareas complejas y ejecutarlas de forma iterativa.
  *
  * ARQUITECTURA DEL LOOP:
@@ -82,7 +82,7 @@ class AgentLoop(
     private val toolExecutor: ToolExecutor
 ) {
     companion object {
-        private const val TAG = "NubiaAgent/Loop"
+        private const val TAG = "Dayana/Loop"
 
         // Límites del loop
         private const val MAX_ITERATIONS = 10
@@ -426,7 +426,7 @@ class AgentLoop(
     private fun describeEvent(event: PerceptionEvent): String {
         return when (event) {
             is PerceptionEvent.WakeWordDetected ->
-                "El usuario dijo 'Hey Nubia' (confianza: ${event.confidence}). Está esperando un comando."
+                "El usuario dijo el wake word (confianza: ${event.confidence}). Está esperando un comando."
 
             is PerceptionEvent.VoiceCommand ->
                 "Comando de voz del usuario: \"${event.transcript}\" (confianza: ${event.confidence}, finalizado: ${event.isFinal})"

@@ -5,7 +5,7 @@ import android.util.Log
 import com.nubiaagent.perception.hardware.HardwareStateCollector
 
 /**
- * NubiaAgentApp: Application class principal.
+ * DayanaApp: Application class principal.
  *
  * Inicializa los componentes globales de la Capa de Percepción:
  * - HardwareStateCollector: Telemetría del dispositivo
@@ -17,7 +17,7 @@ import com.nubiaagent.perception.hardware.HardwareStateCollector
 class NubiaAgentApp : Application() {
 
     companion object {
-        private const val TAG = "NubiaAgent/App"
+        private const val TAG = "Dayana/App"
         lateinit var instance: NubiaAgentApp
             private set
     }
@@ -30,7 +30,7 @@ class NubiaAgentApp : Application() {
         super.onCreate()
         instance = this
 
-        Log.i(TAG, "NubiaAgent iniciando en ${android.os.Build.MODEL} " +
+        Log.i(TAG, "Dayana iniciando en ${android.os.Build.MODEL} " +
                 "(${android.os.Build.MANUFACTURER})")
 
         // Iniciar colector de hardware (siempre activo)

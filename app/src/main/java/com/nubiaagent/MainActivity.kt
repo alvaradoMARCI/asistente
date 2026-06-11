@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         statusText = TextView(this).apply {
-            text = "NubiaAgent\n\nInicializando..."
+            text = "Dayana\n\nInicializando..."
             textSize = 15f
             setTextColor(0xFFC0C0C0.toInt())
             setPadding(0, 0, 0, 24)
@@ -167,7 +167,7 @@ class MainActivity : AppCompatActivity() {
         WakeWordService.start(this)
 
         updateStatus()
-        Toast.makeText(this, "NubiaAgent activo - Di \"Hey Nubia\"", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "Dayana activa - Di \"Hey Dayana\"", Toast.LENGTH_LONG).show()
     }
 
     private fun updateStatus() {
@@ -180,7 +180,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val status = buildString {
-            appendLine("NubiaAgent - Capa de Percepcion")
+            appendLine("Dayana - Capa de Percepcion")
             appendLine()
             appendLine("Estado de Modulos:")
             appendLine("  Ear (Wake Word): ${if (WakeWordService.isRunning()) "Activo" else "Inactivo"}")
@@ -230,7 +230,7 @@ class MainActivity : AppCompatActivity() {
     private fun showEnableAccessibilityDialog() {
         AlertDialog.Builder(this)
             .setTitle("Activar Servicio de Accesibilidad")
-            .setMessage("NubiaAgent necesita acceso de accesibilidad para ver la pantalla. " +
+            .setMessage("Dayana necesita acceso de accesibilidad para ver la pantalla. " +
                     "Esto permite al asistente identificar elementos interactivos. " +
                     "Ningún dato sale de tu dispositivo.")
             .setPositiveButton("Activar") { _, _ ->
@@ -243,7 +243,7 @@ class MainActivity : AppCompatActivity() {
     private fun showEnableNotificationListenerDialog() {
         AlertDialog.Builder(this)
             .setTitle("Activar Acceso a Notificaciones")
-            .setMessage("NubiaAgent necesita leer notificaciones para clasificar mensajes " +
+            .setMessage("Dayana necesita leer notificaciones para clasificar mensajes " +
                     "urgentes y decidir cuándo interrumpirte. El contenido se procesa " +
                     "solo en tu dispositivo.")
             .setPositiveButton("Activar") { _, _ ->
@@ -256,7 +256,7 @@ class MainActivity : AppCompatActivity() {
     private fun showEnableOverlayDialog() {
         AlertDialog.Builder(this)
             .setTitle("Permitir Superposición")
-            .setMessage("NubiaAgent necesita permiso de superposición para " +
+            .setMessage("Dayana necesita permiso de superposición para " +
                     "mostrar respuestas sobre otras apps.")
             .setPositiveButton("Permitir") { _, _ ->
                 val intent = Intent(

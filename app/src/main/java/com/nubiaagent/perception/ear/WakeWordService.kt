@@ -66,8 +66,8 @@ class WakeWordService : LifecycleService() {
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
 
         // Wake word detection
-        private const val WAKE_WORD = "hey nubia"
-        private val WAKE_PHRASES = arrayOf("hey nubia", "hey nova", "hey nube")  // Variaciones fonéticas
+        private const val WAKE_WORD = "hey dayana"
+        private val WAKE_PHRASES = arrayOf("hey dayana", "hey marcia", "hey nubia", "hey diana", "hey dana")  // Nombres + variaciones fonéticas
         private const val WAKE_CONFIDENCE_THRESHOLD = 0.65f
 
         // Command listening

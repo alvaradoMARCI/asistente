@@ -12,7 +12,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 /**
- * BriefingScheduler: Programador de briefing matutino para NubiaAgent.
+ * BriefingScheduler: Programador de briefing matutino para Dayana.
  *
  * Genera y presenta un resumen diario personalizado que incluye:
  * - Saludo con nombre del usuario
@@ -88,7 +88,7 @@ class BriefingScheduler(
 ) {
 
     companion object {
-        private const val TAG = "NubiaAgent/Briefing"
+        private const val TAG = "Dayana/Briefing"
 
         /** Nombre único del trabajo de briefing en WorkManager. */
         private const val BRIEFING_WORK_NAME = "nubia_agent_morning_briefing"
@@ -433,7 +433,7 @@ class BriefingScheduler(
             else -> "Buenas noches"
         }
 
-        val prompt = """Eres un asistente personal llamado NubiaAgent. Genera un briefing diario en español para tu usuario.
+        val prompt = """Eres un asistente personal llamada Dayana. Genera un briefing diario en español para tu usuario.
 
 DATOS PARA EL BRIEFING:
 $dataContext
@@ -672,7 +672,7 @@ BRIEFING:"""
     ) : CoroutineWorker(context, workerParams) {
 
         companion object {
-            private const val TAG = "NubiaAgent/BriefingWorker"
+            private const val TAG = "Dayana/BriefingWorker"
         }
 
         override suspend fun doWork(): Result {
@@ -771,7 +771,7 @@ BRIEFING:"""
                         "Briefing Matutino",
                         android.app.NotificationManager.IMPORTANCE_HIGH
                     ).apply {
-                        description = "Notificaciones del briefing diario de NubiaAgent"
+                        description = "Notificaciones del briefing diario de Dayana"
                         enableVibration(true)
                     }
                     notificationManager.createNotificationChannel(channel)
@@ -782,7 +782,7 @@ BRIEFING:"""
                     applicationContext, "briefing_channel"
                 )
                     .setSmallIcon(android.R.drawable.ic_dialog_info)
-                    .setContentTitle("NubiaAgent — Briefing del Día")
+                    .setContentTitle("Dayana — Briefing del Día")
                     .setStyle(
                         androidx.core.app.NotificationCompat.BigTextStyle()
                             .bigText(briefingText)

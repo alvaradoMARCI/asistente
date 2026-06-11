@@ -21,7 +21,7 @@ import org.json.JSONObject
 import java.io.File
 
 /**
- * CognitiveEngine: Motor de Inferencia Local para NubiaAgent.
+ * CognitiveEngine: Motor de Inferencia Local para Dayana.
  *
  * Este es el corazón de la Capa Cognitiva. Gestiona:
  * 1. Carga y descarga de modelos GGUF en RAM
@@ -63,7 +63,7 @@ import java.io.File
 class CognitiveEngine : LifecycleService() {
 
     companion object {
-        private const val TAG = "NubiaAgent/Cognition"
+        private const val TAG = "Dayana/Cognition"
         private const val CHANNEL_ID = "nubia_agent_cognition_channel"
         private const val NOTIFICATION_ID = 2001
 
@@ -651,10 +651,10 @@ class CognitiveEngine : LifecycleService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "NubiaAgent - Motor Cognitivo",
+                "Dayana - Motor Cognitivo",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Servicio de inferencia local de NubiaAgent"
+                description = "Servicio de inferencia de Dayana"
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
@@ -670,7 +670,7 @@ class CognitiveEngine : LifecycleService() {
         )
 
         return androidx.core.app.NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("NubiaAgent - Motor Cognitivo")
+            .setContentTitle("Dayana - Motor Cognitivo")
             .setContentText(statusText)
             .setSmallIcon(R.drawable.ic_ear)
             .setContentIntent(pendingIntent)
@@ -759,16 +759,16 @@ class CognitiveEngine : LifecycleService() {
             return try {
                 System.loadLibrary("llama")
                 libraryLoaded = true
-                Log.i("NubiaAgent/Cognition", "libllama.so cargada exitosamente")
+                Log.i("Dayana/Cognition", "libllama.so cargada exitosamente")
                 true
             } catch (e: UnsatisfiedLinkError) {
                 loadFailed = true
-                Log.w("NubiaAgent/Cognition",
+                Log.w("Dayana/Cognition",
                     "libllama.so no disponible - modo cloud/simulacion activo", e)
                 false
             } catch (e: Exception) {
                 loadFailed = true
-                Log.w("NubiaAgent/Cognition",
+                Log.w("Dayana/Cognition",
                     "Error cargando libllama.so", e)
                 false
             }
@@ -779,7 +779,7 @@ class CognitiveEngine : LifecycleService() {
             return try {
                 llamaInitModelNative(modelPath, nThreads, nCtx, nGpuLayers)
             } catch (e: UnsatisfiedLinkError) {
-                Log.e("NubiaAgent/Cognition", "JNI llamaInitModel not available", e)
+                Log.e("Dayana/Cognition", "JNI llamaInitModel not available", e)
                 0L
             }
         }

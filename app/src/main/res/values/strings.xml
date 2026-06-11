@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NubiaAgent</string>
-    <string name="accessibility_service_description">NubiaAgent necesita acceso de accesibilidad para "ver" la pantalla del dispositivo y comprender la interfaz. Esto permite al asistente identificar botones, campos de texto y elementos interactivos para ejecutar acciones en tu nombre. Ningún dato de pantalla sale del dispositivo.</string>
-    <string name="notification_listener_description">NubiaAgent necesita acceso a notificaciones para clasificar mensajes y decidir cuáles son urgentes. El contenido de las notificaciones se procesa exclusivamente en tu dispositivo.</string>
+    <string name="app_name">Dayana</string>
+    <string name="accessibility_service_description">Dayana necesita acceso de accesibilidad para "ver" la pantalla del dispositivo y comprender la interfaz. Esto permite al asistente identificar botones, campos de texto y elementos interactivos para ejecutar acciones en tu nombre. Ningún dato de pantalla sale del dispositivo.</string>
+    <string name="notification_listener_description">Dayana necesita acceso a notificaciones para clasificar mensajes y decidir cuáles son urgentes. El contenido de las notificaciones se procesa exclusivamente en tu dispositivo.</string>
     <string name="ear_notification_channel">Escucha de voz activa</string>
-    <string name="ear_notification_title">NubiaAgent - Escuchando</string>
-    <string name="ear_notification_text">Asistente de voz activo. Di \"Hey Nubia\" para interactuar.</string>
+    <string name="ear_notification_title">Dayana - Escuchando</string>
+    <string name="ear_notification_text">Asistente de voz activo. Di \"Hey Dayana\" para interactuar.</string>
 </resources>

@@ -16,49 +16,45 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * CloudInferenceEngine: Motor de inferencia via API cloud.
+ * CloudInferenceEngine: Motor de inferencia via API cloud con FALLBACK AUTOMÁTICO.
  *
- * Soluciona el problema de no tener PC para compilar llama.cpp:
- * en lugar de inferencia local, usa APIs de lenguaje en la nube
- * para que NubiaAgent funcione INMEDIATAMENTE tras instalar el APK.
+ * SISTEMA DE FALLBACK MULTI-PROVEEDOR:
+ * Gemini (GRATIS) → Groq (GRATIS) → OpenAI (de pago)
  *
- * PROVEEDORES SOPORTADOS:
- * 1. OpenAI (GPT-4o-mini, GPT-4o, GPT-3.5-turbo) — Mejor calidad
- * 2. Anthropic (Claude Haiku, Claude Sonnet) — Buen razonamiento
- * 3. OpenRouter — Gateway multi-modelo, precios bajos
- * 4. Cualquier API compatible con formato OpenAI (LM Studio, Ollama, etc.)
+ * Si un proveedor falla (error, rate limit, sin conexión), automáticamente
+ * intenta el siguiente proveedor. Esto garantiza que el asistente SIEMPRE
+ * funcione mientras al menos una API esté disponible.
  *
- * ESTRATEGIA DE FALLBACK:
- * Local (llama.cpp) → Cloud (OpenAI/Anthropic) → Simulación
- *
- * El motor siempre prefiere inferencia local por privacidad, pero
- * si no hay modelo nativo disponible, transparentemente usa la API
- * cloud. El usuario configura su API key en la pantalla de ajustes.
+ * PROVEEDORES PRECONFIGURADOS:
+ * 1. Google Gemini — GRATIS, ultra rápido, 1M contexto, 15 RPM
+ * 2. Groq — GRATIS, velocidad extrema (800 tok/s), 30 RPM
+ * 3. OpenAI — De pago (GPT-4o-mini), mejor calidad, sin rate limits
  *
  * SEGURIDAD DE API KEY:
- * La API key se almacena en EncryptedSharedPreferences con AES-256-GCM
- * usando Android Keystore. Nunca se almacena en texto plano ni se
- * envía a terceros (solo al proveedor de API seleccionado).
- *
- * MODO ECONÓMICO:
- * - GPT-4o-mini: ~$0.15/1M input tokens, ~$0.60/1M output tokens
- * - Claude Haiku: ~$0.25/1M input tokens, ~$1.25/1M output tokens
- * - OpenRouter: Varía por modelo, algunos gratuitos
- * Con uso moderado (~50 consultas/día), el costo mensual es < $3 USD.
+ * Las API keys se almacenan en EncryptedSharedPreferences con AES-256-GCM
+ * usando Android Keystore. Nunca se almacenan en texto plano ni se
+ * envían a terceros (solo al proveedor de API seleccionado).
  */
 class CloudInferenceEngine(private val context: Context) {
 
     companion object {
-        private const val TAG = "NubiaAgent/CloudEngine"
+        private const val TAG = "Dayana/CloudEngine"
 
         // Proveedores
+        const val PROVIDER_GEMINI = "gemini"
+        const val PROVIDER_GROQ = "groq"
         const val PROVIDER_OPENAI = "openai"
         const val PROVIDER_ANTHROPIC = "anthropic"
         const val PROVIDER_OPENROUTER = "openrouter"
         const val PROVIDER_CUSTOM = "custom"
 
+        // Orden de fallback: se intentan en este orden
+        val FALLBACK_ORDER = listOf(PROVIDER_GEMINI, PROVIDER_GROQ, PROVIDER_OPENAI)
+
         // Modelos por defecto
         val DEFAULT_MODELS = mapOf(
+            PROVIDER_GEMINI to "gemini-2.0-flash",
+            PROVIDER_GROQ to "llama-3.3-70b-versatile",
             PROVIDER_OPENAI to "gpt-4o-mini",
             PROVIDER_ANTHROPIC to "claude-3-haiku-20240307",
             PROVIDER_OPENROUTER to "openai/gpt-4o-mini",
@@ -67,24 +63,37 @@ class CloudInferenceEngine(private val context: Context) {
 
         // URLs base de API
         val API_BASE_URLS = mapOf(
+            PROVIDER_GEMINI to "https://generativelanguage.googleapis.com/v1beta",
+            PROVIDER_GROQ to "https://api.groq.com/openai/v1",
             PROVIDER_OPENAI to "https://api.openai.com/v1",
             PROVIDER_ANTHROPIC to "https://api.anthropic.com/v1",
             PROVIDER_OPENROUTER to "https://openrouter.ai/api/v1",
             PROVIDER_CUSTOM to ""  // El usuario configura la URL
         )
 
+        // API Keys preconfiguradas: se leen desde BuildConfig (inyectadas por Gradle)
+        // Las keys se almacenan en secrets.properties (local) o GitHub Secrets (CI)
+        // NUNCA se hardcodean directamente en el codigo fuente
+        private val BUILT_IN_GEMINI_KEY: String get() = com.nubiaagent.BuildConfig.GEMINI_API_KEY
+        private val BUILT_IN_GROQ_KEY: String get() = com.nubiaagent.BuildConfig.GROQ_API_KEY
+        private val BUILT_IN_OPENAI_KEY: String get() = com.nubiaagent.BuildConfig.OPENAI_API_KEY
+
         // EncryptedSharedPreferences para API key
-        private const val SECURE_PREFS_NAME = "nubia_cloud_engine_secrets"
+        private const val SECURE_PREFS_NAME = "dayana_cloud_engine_secrets"
         private const val KEY_API_KEY = "cloud_api_key"
         private const val KEY_PROVIDER = "cloud_provider"
         private const val KEY_MODEL = "cloud_model"
         private const val KEY_CUSTOM_URL = "cloud_custom_url"
         private const val KEY_ENABLED = "cloud_enabled"
+        private const val KEY_KEYS_INITIALIZED = "builtin_keys_initialized"
 
         // Budget tracking
         private const val KEY_TOTAL_TOKENS_USED = "total_tokens_used"
         private const val KEY_TOTAL_ESTIMATED_COST = "total_estimated_cost_cents"
         private const val KEY_LAST_RESET_DATE = "last_reset_date"
+
+        // Estadísticas de fallback
+        private const val KEY_FALLBACK_STATS = "fallback_stats"
 
         fun getSecurePrefs(context: Context): SharedPreferences {
             val masterKey = MasterKey.Builder(context)
@@ -100,10 +109,49 @@ class CloudInferenceEngine(private val context: Context) {
             )
         }
 
-        fun isConfigured(context: Context): Boolean {
+        /**
+         * Inicializa las API keys preconfiguradas si es la primera vez.
+         * Solo se ejecuta una vez tras la instalación.
+         */
+        fun initializeBuiltinKeys(context: Context) {
             val prefs = getSecurePrefs(context)
-            return prefs.getString(KEY_API_KEY, null) != null &&
-                   prefs.getBoolean(KEY_ENABLED, false)
+            if (prefs.getBoolean(KEY_KEYS_INITIALIZED, false)) return
+
+            prefs.edit()
+                .putString("key_gemini", BUILT_IN_GEMINI_KEY)
+                .putString("key_groq", BUILT_IN_GROQ_KEY)
+                .putString("key_openai", BUILT_IN_OPENAI_KEY)
+                .putString(KEY_PROVIDER, PROVIDER_GEMINI)  // Gemini por defecto
+                .putString(KEY_MODEL, DEFAULT_MODELS[PROVIDER_GEMINI])
+                .putBoolean(KEY_ENABLED, true)
+                .putBoolean(KEY_KEYS_INITIALIZED, true)
+                .apply()
+
+            Log.i(TAG, "API keys preconfiguradas inicializadas (Gemini + Groq + OpenAI)")
+        }
+
+        /**
+         * Obtiene la API key para un proveedor específico.
+         * Primero busca la key personalizada, luego la preconfigurada.
+         */
+        fun getApiKeyForProvider(context: Context, provider: String): String? {
+            val prefs = getSecurePrefs(context)
+            // Key personalizada del usuario
+            val customKey = prefs.getString("key_${provider}", null)
+            if (!customKey.isNullOrEmpty()) return customKey
+            // Fallback a key preconfigurada
+            return when (provider) {
+                PROVIDER_GEMINI -> BUILT_IN_GEMINI_KEY
+                PROVIDER_GROQ -> BUILT_IN_GROQ_KEY
+                PROVIDER_OPENAI -> BUILT_IN_OPENAI_KEY
+                else -> prefs.getString(KEY_API_KEY, null)
+            }
+        }
+
+        fun isConfigured(context: Context): Boolean {
+            initializeBuiltinKeys(context)
+            val prefs = getSecurePrefs(context)
+            return prefs.getBoolean(KEY_ENABLED, false)
         }
 
         fun getApiKey(context: Context): String? {
@@ -111,7 +159,8 @@ class CloudInferenceEngine(private val context: Context) {
         }
 
         fun getProvider(context: Context): String {
-            return getSecurePrefs(context).getString(KEY_PROVIDER, PROVIDER_OPENAI) ?: PROVIDER_OPENAI
+            initializeBuiltinKeys(context)
+            return getSecurePrefs(context).getString(KEY_PROVIDER, PROVIDER_GEMINI) ?: PROVIDER_GEMINI
         }
 
         fun getModel(context: Context): String {
@@ -120,6 +169,7 @@ class CloudInferenceEngine(private val context: Context) {
         }
 
         fun isEnabled(context: Context): Boolean {
+            initializeBuiltinKeys(context)
             return getSecurePrefs(context).getBoolean(KEY_ENABLED, false)
         }
 
@@ -129,7 +179,7 @@ class CloudInferenceEngine(private val context: Context) {
         fun saveConfig(
             context: Context,
             apiKey: String,
-            provider: String = PROVIDER_OPENAI,
+            provider: String = PROVIDER_GEMINI,
             model: String? = null,
             customUrl: String? = null,
             enabled: Boolean = true
@@ -143,6 +193,16 @@ class CloudInferenceEngine(private val context: Context) {
                 .putBoolean(KEY_ENABLED, enabled)
                 .apply()
             Log.i(TAG, "Configuración cloud guardada: provider=$provider, model=${model ?: DEFAULT_MODELS[provider]}")
+        }
+
+        /**
+         * Actualiza la API key de un proveedor específico.
+         */
+        fun saveProviderKey(context: Context, provider: String, apiKey: String) {
+            getSecurePrefs(context).edit()
+                .putString("key_${provider}", apiKey)
+                .apply()
+            Log.i(TAG, "API key actualizada para: $provider")
         }
 
         /**
@@ -168,22 +228,33 @@ class CloudInferenceEngine(private val context: Context) {
                 prefs.getFloat(KEY_TOTAL_ESTIMATED_COST, 0f)
             )
         }
+
+        /**
+         * Obtiene estadísticas de qué proveedor se usa más (fallback stats).
+         */
+        fun getFallbackStats(context: Context): Map<String, Int> {
+            val prefs = getSecurePrefs(context)
+            val statsStr = prefs.getString(KEY_FALLBACK_STATS, "") ?: ""
+            if (statsStr.isBlank()) return emptyMap()
+            return statsStr.split(",").associate { entry ->
+                val parts = entry.split(":")
+                if (parts.size == 2) parts[0] to (parts[1].toIntOrNull() ?: 0) else "" to 0
+            }.filterKeys { it.isNotBlank() }
+        }
     }
 
     private val securePrefs = getSecurePrefs(context)
 
+    init {
+        // Asegurar que las keys preconfiguradas estén disponibles
+        initializeBuiltinKeys(context)
+    }
+
     /**
-     * Ejecuta inferencia via API cloud.
+     * Ejecuta inferencia via API cloud con FALLBACK AUTOMÁTICO.
      *
-     * Formato de messages compatible con OpenAI Chat Completions:
-     * - system: Instrucciones del SOUL + Living Profile
-     * - user: Mensaje del usuario
-     * - assistant: Respuestas previas del agente
-     *
-     * @param prompt El prompt completo (system + contexto + mensaje)
-     * @param maxTokens Máximo de tokens a generar
-     * @param temperature Temperatura de muestreo (0.0 - 2.0)
-     * @return Texto generado por el modelo
+     * Orden: Gemini (gratis) → Groq (gratis) → OpenAI (pago)
+     * Si el proveedor principal falla, automáticamente prueba el siguiente.
      */
     suspend fun infer(
         prompt: String,
@@ -191,42 +262,66 @@ class CloudInferenceEngine(private val context: Context) {
         temperature: Float = 0.7f
     ): String = withContext(Dispatchers.IO) {
         if (!securePrefs.getBoolean(KEY_ENABLED, false)) {
-            return@withContext "[ERROR: Motor cloud deshabilitado]"
+            return@withContext "[ERROR: Motor cloud deshabilitado. Actívalo en Configuración.]"
         }
 
-        val apiKey = securePrefs.getString(KEY_API_KEY, null)
-        if (apiKey.isNullOrEmpty()) {
-            return@withContext "[ERROR: API Key no configurada]"
-        }
-
-        val provider = securePrefs.getString(KEY_PROVIDER, PROVIDER_OPENAI)!!
-        val model = securePrefs.getString(KEY_MODEL, DEFAULT_MODELS[provider]) ?: DEFAULT_MODELS[provider]!!
+        val primaryProvider = securePrefs.getString(KEY_PROVIDER, PROVIDER_GEMINI)!!
         val customUrl = securePrefs.getString(KEY_CUSTOM_URL, "") ?: ""
 
-        Log.i(TAG, "Inferencia cloud: provider=$provider, model=$model")
+        // Construir lista de proveedores a intentar: primario + fallback
+        val providersToTry = buildProviderList(primaryProvider, customUrl)
 
-        try {
-            val result = when (provider) {
-                PROVIDER_OPENAI -> callOpenAI(apiKey, model, prompt, maxTokens, temperature)
-                PROVIDER_ANTHROPIC -> callAnthropic(apiKey, model, prompt, maxTokens, temperature)
-                PROVIDER_OPENROUTER -> callOpenRouter(apiKey, model, prompt, maxTokens, temperature)
-                PROVIDER_CUSTOM -> callCustomAPI(apiKey, customUrl, model, prompt, maxTokens, temperature)
-                else -> callOpenAI(apiKey, model, prompt, maxTokens, temperature)
+        Log.i(TAG, "Inferencia: intentando ${providersToTry.size} proveedores (primario: $primaryProvider)")
+
+        var lastError: String = ""
+        for (provider in providersToTry) {
+            try {
+                val apiKey = getApiKeyForProvider(context, provider)
+                if (apiKey.isNullOrEmpty()) {
+                    Log.w(TAG, "Sin API key para $provider, saltando...")
+                    continue
+                }
+
+                val model = if (provider == primaryProvider) {
+                    securePrefs.getString(KEY_MODEL, DEFAULT_MODELS[provider]) ?: DEFAULT_MODELS[provider]!!
+                } else {
+                    DEFAULT_MODELS[provider] ?: continue
+                }
+
+                Log.i(TAG, "Intentando proveedor: $provider, modelo: $model")
+
+                val result = when (provider) {
+                    PROVIDER_GEMINI -> callGemini(apiKey, model, prompt, maxTokens, temperature)
+                    PROVIDER_GROQ -> callGroq(apiKey, model, prompt, maxTokens, temperature)
+                    PROVIDER_OPENAI -> callOpenAI(apiKey, model, prompt, maxTokens, temperature)
+                    PROVIDER_ANTHROPIC -> callAnthropic(apiKey, model, prompt, maxTokens, temperature)
+                    PROVIDER_OPENROUTER -> callOpenRouter(apiKey, model, prompt, maxTokens, temperature)
+                    PROVIDER_CUSTOM -> callCustomAPI(apiKey, customUrl, model, prompt, maxTokens, temperature)
+                    else -> continue
+                }
+
+                // Éxito — actualizar stats y retornar
+                updateUsageStats(result.second, provider)
+                updateFallbackStats(provider)
+
+                if (provider != primaryProvider) {
+                    Log.i(TAG, "Fallback exitoso: $provider respondió (primario $primaryProvider falló)")
+                }
+
+                return@withContext result.first
+
+            } catch (e: Exception) {
+                lastError = e.message ?: "Error desconocido"
+                Log.w(TAG, "Proveedor $provider falló: $lastError")
+                // Continuar con el siguiente proveedor
             }
-
-            // Actualizar estadísticas de uso
-            updateUsageStats(result.second)
-
-            result.first
-        } catch (e: Exception) {
-            Log.e(TAG, "Error en inferencia cloud: ${e.message}", e)
-            "[ERROR: ${e.message}]"
         }
+
+        "[ERROR: Todos los proveedores fallaron. Último error: $lastError]"
     }
 
     /**
-     * Ejecuta inferencia con historial de conversación (más natural).
-     * Separar system prompt del historial permite mejor control.
+     * Ejecuta inferencia con historial de conversación y fallback automático.
      */
     suspend fun inferWithHistory(
         systemPrompt: String,
@@ -238,26 +333,224 @@ class CloudInferenceEngine(private val context: Context) {
             return@withContext "[ERROR: Motor cloud deshabilitado]"
         }
 
-        val apiKey = securePrefs.getString(KEY_API_KEY, null)
-        if (apiKey.isNullOrEmpty()) {
-            return@withContext "[ERROR: API Key no configurada]"
-        }
+        val primaryProvider = securePrefs.getString(KEY_PROVIDER, PROVIDER_GEMINI)!!
+        val providersToTry = buildProviderList(primaryProvider, "")
 
-        val provider = securePrefs.getString(KEY_PROVIDER, PROVIDER_OPENAI)!!
-        val model = securePrefs.getString(KEY_MODEL, DEFAULT_MODELS[provider]) ?: DEFAULT_MODELS[provider]!!
+        var lastError: String = ""
+        for (provider in providersToTry) {
+            try {
+                val apiKey = getApiKeyForProvider(context, provider)
+                if (apiKey.isNullOrEmpty()) continue
 
-        try {
-            val result = when (provider) {
-                PROVIDER_ANTHROPIC -> callAnthropicWithHistory(apiKey, model, systemPrompt, messages, maxTokens, temperature)
-                else -> callOpenAIWithHistory(apiKey, model, systemPrompt, messages, maxTokens, temperature)
+                val model = if (provider == primaryProvider) {
+                    securePrefs.getString(KEY_MODEL, DEFAULT_MODELS[provider]) ?: DEFAULT_MODELS[provider]!!
+                } else {
+                    DEFAULT_MODELS[provider] ?: continue
+                }
+
+                val result = when (provider) {
+                    PROVIDER_GEMINI -> callGeminiWithHistory(apiKey, model, systemPrompt, messages, maxTokens, temperature)
+                    PROVIDER_GROQ -> callGroqWithHistory(apiKey, model, systemPrompt, messages, maxTokens, temperature)
+                    PROVIDER_ANTHROPIC -> callAnthropicWithHistory(apiKey, model, systemPrompt, messages, maxTokens, temperature)
+                    else -> callOpenAIWithHistory(apiKey, model, systemPrompt, messages, maxTokens, temperature)
+                }
+
+                updateUsageStats(result.second, provider)
+                updateFallbackStats(provider)
+                return@withContext result.first
+
+            } catch (e: Exception) {
+                lastError = e.message ?: "Error desconocido"
+                Log.w(TAG, "Proveedor $provider falló en inferWithHistory: $lastError")
             }
-
-            updateUsageStats(result.second)
-            result.first
-        } catch (e: Exception) {
-            Log.e(TAG, "Error en inferencia cloud: ${e.message}", e)
-            "[ERROR: ${e.message}]"
         }
+
+        "[ERROR: Todos los proveedores fallaron. Último error: $lastError]"
+    }
+
+    /**
+     * Construye la lista de proveedores a intentar.
+     * Primero el seleccionado, luego los demás en orden de fallback.
+     */
+    private fun buildProviderList(primaryProvider: String, customUrl: String): List<String> {
+        val result = mutableListOf<String>()
+        result.add(primaryProvider)
+
+        // Agregar fallbacks en orden
+        for (provider in FALLBACK_ORDER) {
+            if (provider != primaryProvider && provider !in result) {
+                result.add(provider)
+            }
+        }
+
+        // Agregar Anthropic si tiene key y no está ya
+        if (PROVIDER_ANTHROPIC !in result) result.add(PROVIDER_ANTHROPIC)
+
+        // Agregar Custom si tiene URL
+        if (PROVIDER_CUSTOM !in result && customUrl.isNotBlank()) result.add(PROVIDER_CUSTOM)
+
+        // Agregar OpenRouter si no está
+        if (PROVIDER_OPENROUTER !in result) result.add(PROVIDER_OPENROUTER)
+
+        return result
+    }
+
+    // ==================== GEMINI API ====================
+
+    private fun callGemini(
+        apiKey: String, model: String, prompt: String,
+        maxTokens: Int, temperature: Float
+    ): Pair<String, Int> {
+        val url = URL("${API_BASE_URLS[PROVIDER_GEMINI]}/models/${model}:generateContent?key=$apiKey")
+
+        val body = JSONObject().apply {
+            put("contents", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply { put("text", prompt) })
+                    })
+                })
+            })
+            put("generationConfig", JSONObject().apply {
+                put("maxOutputTokens", maxTokens)
+                put("temperature", temperature.toDouble())
+                put("topP", 0.9)
+            })
+        }
+
+        val conn = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            setRequestProperty("Content-Type", "application/json")
+            doOutput = true
+            connectTimeout = 30000
+            readTimeout = 60000
+        }
+
+        OutputStreamWriter(conn.outputStream).use { it.write(body.toString()) }
+        val response = readResponse(conn)
+        conn.disconnect()
+
+        val json = JSONObject(response)
+        val candidates = json.optJSONArray("candidates")
+        val usageMetadata = json.optJSONObject("usageMetadata")
+        val totalTokens = usageMetadata?.optInt("totalTokenCount", 0) ?: 0
+
+        val content = if (candidates != null && candidates.length() > 0) {
+            candidates.getJSONObject(0)
+                .optJSONObject("content")
+                ?.optJSONArray("parts")
+                ?.let { parts ->
+                    if (parts.length() > 0) parts.getJSONObject(0).optString("text", "") else ""
+                } ?: ""
+        } else ""
+
+        return Pair(content.trim(), totalTokens)
+    }
+
+    private fun callGeminiWithHistory(
+        apiKey: String, model: String, systemPrompt: String,
+        history: List<ChatMessage>, maxTokens: Int, temperature: Float
+    ): Pair<String, Int> {
+        val url = URL("${API_BASE_URLS[PROVIDER_GEMINI]}/models/${model}:generateContent?key=$apiKey")
+
+        val contentsArr = JSONArray().apply {
+            history.forEach { msg ->
+                val geminiRole = when (msg.role) {
+                    "assistant" -> "model"
+                    "system" -> "user"
+                    else -> msg.role
+                }
+                put(JSONObject().apply {
+                    put("role", geminiRole)
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply { put("text", msg.content) })
+                    })
+                })
+            }
+        }
+
+        val body = JSONObject().apply {
+            put("systemInstruction", JSONObject().apply {
+                put("parts", JSONArray().apply {
+                    put(JSONObject().apply { put("text", systemPrompt) })
+                })
+            })
+            put("contents", contentsArr)
+            put("generationConfig", JSONObject().apply {
+                put("maxOutputTokens", maxTokens)
+                put("temperature", temperature.toDouble())
+                put("topP", 0.9)
+            })
+        }
+
+        val conn = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            setRequestProperty("Content-Type", "application/json")
+            doOutput = true
+            connectTimeout = 30000
+            readTimeout = 60000
+        }
+
+        OutputStreamWriter(conn.outputStream).use { it.write(body.toString()) }
+        val response = readResponse(conn)
+        conn.disconnect()
+
+        val json = JSONObject(response)
+        val candidates = json.optJSONArray("candidates")
+        val usageMetadata = json.optJSONObject("usageMetadata")
+        val totalTokens = usageMetadata?.optInt("totalTokenCount", 0) ?: 0
+
+        val content = if (candidates != null && candidates.length() > 0) {
+            candidates.getJSONObject(0)
+                .optJSONObject("content")
+                ?.optJSONArray("parts")
+                ?.let { parts ->
+                    if (parts.length() > 0) parts.getJSONObject(0).optString("text", "") else ""
+                } ?: ""
+        } else ""
+
+        return Pair(content.trim(), totalTokens)
+    }
+
+    // ==================== GROQ API ====================
+
+    /**
+     * Groq usa formato OpenAI-compatible pero con velocidad ultra rápida.
+     * Endpoint: POST https://api.groq.com/openai/v1/chat/completions
+     * Auth: Bearer token
+     */
+    private fun callGroq(
+        apiKey: String, model: String, prompt: String,
+        maxTokens: Int, temperature: Float
+    ): Pair<String, Int> {
+        val url = URL("${API_BASE_URLS[PROVIDER_GROQ]}/chat/completions")
+        val messages = JSONArray().apply {
+            put(JSONObject().apply {
+                put("role", "user")
+                put("content", prompt)
+            })
+        }
+        return callOpenAIFormat(url, apiKey, model, messages, maxTokens, temperature)
+    }
+
+    private fun callGroqWithHistory(
+        apiKey: String, model: String, systemPrompt: String,
+        history: List<ChatMessage>, maxTokens: Int, temperature: Float
+    ): Pair<String, Int> {
+        val url = URL("${API_BASE_URLS[PROVIDER_GROQ]}/chat/completions")
+        val messages = JSONArray().apply {
+            put(JSONObject().apply {
+                put("role", "system")
+                put("content", systemPrompt)
+            })
+            history.forEach { msg ->
+                put(JSONObject().apply {
+                    put("role", msg.role)
+                    put("content", msg.content)
+                })
+            }
+        }
+        return callOpenAIFormat(url, apiKey, model, messages, maxTokens, temperature)
     }
 
     // ==================== OPENAI API ====================
@@ -296,6 +589,9 @@ class CloudInferenceEngine(private val context: Context) {
         return callOpenAIFormat(url, apiKey, model, messages, maxTokens, temperature)
     }
 
+    /**
+     * Formato OpenAI compartido por: OpenAI, Groq, OpenRouter, Custom
+     */
     private fun callOpenAIFormat(
         url: URL, apiKey: String, model: String,
         messages: JSONArray, maxTokens: Int, temperature: Float
@@ -322,7 +618,6 @@ class CloudInferenceEngine(private val context: Context) {
         val response = readResponse(conn)
         conn.disconnect()
 
-        // Parsear respuesta
         val json = JSONObject(response)
         val choices = json.optJSONArray("choices")
         val usage = json.optJSONObject("usage")
@@ -363,7 +658,7 @@ class CloudInferenceEngine(private val context: Context) {
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Authorization", "Bearer $apiKey")
             setRequestProperty("HTTP-Referer", "https://github.com/alvaradoMARCI/asistente")
-            setRequestProperty("X-Title", "NubiaAgent")
+            setRequestProperty("X-Title", "DayanaAssistant")
             doOutput = true
             connectTimeout = 30000
             readTimeout = 60000
@@ -496,7 +791,6 @@ class CloudInferenceEngine(private val context: Context) {
         if (customUrl.isBlank()) {
             return Pair("[ERROR: URL custom no configurada]", 0)
         }
-        // Asume formato OpenAI-compatible (LM Studio, Ollama, etc.)
         val url = URL("$customUrl/chat/completions")
         val messages = JSONArray().apply {
             put(JSONObject().apply {
@@ -530,18 +824,19 @@ class CloudInferenceEngine(private val context: Context) {
         return response.toString()
     }
 
-    private fun updateUsageStats(tokensUsed: Int) {
+    private fun updateUsageStats(tokensUsed: Int, provider: String) {
         if (tokensUsed <= 0) return
 
-        val provider = securePrefs.getString(KEY_PROVIDER, PROVIDER_OPENAI)!!
         val costPerToken = when (provider) {
-            PROVIDER_OPENAI -> 0.00005f  // ~$0.05 por 1K tokens (GPT-4o-mini promedio)
+            PROVIDER_GEMINI -> 0.0f     // GRATIS
+            PROVIDER_GROQ -> 0.0f       // GRATIS
+            PROVIDER_OPENAI -> 0.00005f  // ~$0.05 por 1K tokens
             PROVIDER_ANTHROPIC -> 0.00008f
             PROVIDER_OPENROUTER -> 0.00004f
             else -> 0.00005f
         }
 
-        val estimatedCostCents = tokensUsed * costPerToken * 100  // en centavos USD
+        val estimatedCostCents = tokensUsed * costPerToken * 100
 
         val currentTokens = securePrefs.getLong(KEY_TOTAL_TOKENS_USED, 0)
         val currentCost = securePrefs.getFloat(KEY_TOTAL_ESTIMATED_COST, 0f)
@@ -551,7 +846,14 @@ class CloudInferenceEngine(private val context: Context) {
             .putFloat(KEY_TOTAL_ESTIMATED_COST, currentCost + estimatedCostCents)
             .apply()
 
-        Log.d(TAG, "Uso actualizado: +$tokensUsed tokens, ~$${"%.4f".format(estimatedCostCents / 100)}")
+        Log.d(TAG, "Uso actualizado: +$tokensUsed tokens via $provider, ~$${"%.4f".format(estimatedCostCents / 100)}")
+    }
+
+    private fun updateFallbackStats(provider: String) {
+        val stats = getFallbackStats(context).toMutableMap()
+        stats[provider] = (stats[provider] ?: 0) + 1
+        val statsStr = stats.entries.joinToString(",") { "${it.key}:${it.value}" }
+        securePrefs.edit().putString(KEY_FALLBACK_STATS, statsStr).apply()
     }
 
     /**

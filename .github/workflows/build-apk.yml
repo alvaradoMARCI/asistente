@@ -1,0 +1,92 @@
+name: Build Dayana APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create secrets.properties
+        run: |
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> secrets.properties
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> secrets.properties
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> secrets.properties
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon --warning-mode all
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: dayana-v4-debug
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --no-daemon --warning-mode all
+        continue-on-error: true
+
+      - name: Upload Release APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dayana-v4-release
+          path: app/build/outputs/apk/release/*.apk
+
+      - name: Create Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dayana-v4
+          name: "Dayana v4 - Asistente con Fallback Multi-API"
+          body: |
+            ## Dayana v4 - Asistente Inteligente
+
+            ### Novedades
+            - Sistema de fallback automatico: Gemini → Groq → OpenAI
+            - 3 API keys preconfiguradas y encriptadas (AES-256-GCM)
+            - Nombre del asistente: Dayana (principal), Marcia, Nubia
+            - Wake words: "Hey Dayana", "Hey Marcia", "Hey Nubia"
+            - Soporte para Gemini 2.0 Flash (GRATIS, 1M contexto)
+            - Soporte para Groq Llama 3.3 (GRATIS, 800 tok/s)
+            - Soporte para OpenAI GPT-4o-mini (de pago)
+
+            ### Proveedores de API
+            | Proveedor | Modelo | Precio | Velocidad |
+            |-----------|--------|--------|-----------|
+            | Gemini | 2.0 Flash | GRATIS | 15 RPM |
+            | Groq | Llama 3.3 70B | GRATIS | 30 RPM |
+            | OpenAI | GPT-4o-mini | Pago | Sin limite |
+
+            Si un proveedor falla, automaticamente prueba el siguiente.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

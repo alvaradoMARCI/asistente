@@ -52,12 +52,19 @@ import java.io.File
 class IdentityManager(private val context: Context) {
 
     companion object {
-        private const val TAG = "NubiaAgent/Identity"
+        private const val TAG = "Dayana/Identity"
         private const val SOUL_FILE = "SOUL.md"
         private const val PROFILE_FILE = "living_profile.md"
 
+        // Nombres disponibles del asistente
+        private const val PRIMARY_NAME = "Dayana"
+        val ASSISTANT_NAMES = listOf("Dayana", "Marcia", "Nubia")
+
+        // Nombre activo (se puede cambiar en configuración)
+        private const val KEY_ASSISTANT_NAME = "assistant_name"
+
         // Plantilla comprimida para contextos pequeños
-        private const val COMPRESSED_SOUL = """Eres NubiaAgent, asistente autónomo local. Ciclo: Pensar→Actuar→Observar. Perfil: {{AUTONOMY}}. Reglas: 1)Privacidad absoluta 2)Confirmar acciones destructivas 3)Consultar memoria antes de responder 4)Ser conciso. Herramientas: {{TOOLS}}."""
+        private const val COMPRESSED_SOUL = """Eres Dayana, asistente personal inteligente. Ciclo: Pensar→Actuar→Observar. Perfil: {{AUTONOMY}}. Reglas: 1)Privacidad absoluta 2)Confirmar acciones destructivas 3)Consultar memoria antes de responder 4)Ser concisa y amigable. Responde al nombre Dayana. Herramientas: {{TOOLS}}."""
 
         // Living Profile por defecto (primera ejecución)
         private const val DEFAULT_LIVING_PROFILE = """
@@ -222,7 +229,16 @@ class IdentityManager(private val context: Context) {
     /**
      * Obtiene el nombre de la persona del asistente.
      */
-    fun getPersonaName(): String = "NubiaAgent"
+    fun getPersonaName(): String {
+        val prefs = context.getSharedPreferences("dayana_identity_prefs", Context.MODE_PRIVATE)
+        return prefs.getString(KEY_ASSISTANT_NAME, PRIMARY_NAME) ?: PRIMARY_NAME
+    }
+
+    fun setPersonaName(name: String) {
+        val prefs = context.getSharedPreferences("dayana_identity_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_ASSISTANT_NAME, name).apply()
+        Log.i(TAG, "Nombre del asistente cambiado a: $name")
+    }
 
     /**
      * Obtiene el contenido del SOUL.md.
