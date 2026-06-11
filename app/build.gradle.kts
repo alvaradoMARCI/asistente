@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "2.0.0-alpha"
+        versionName = "3.0.0-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -113,6 +113,19 @@ dependencies {
 
     // ONNX Runtime - Para inferencia de modelos de embeddings
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.16.3")
+
+    // ==================== CAPA DE EJECUCIÓN ====================
+
+    // Biometric - Autenticación por huella/rostro
+    implementation("androidx.biometric:biometric:1.1.0")
+
+    // Security - EncryptedSharedPreferences y Keystore
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // Camera2 - Control de cámara (Neovision AI bridge)
+    implementation("androidx.camera:camera-core:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
