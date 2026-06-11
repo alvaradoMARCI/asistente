@@ -286,11 +286,185 @@ object ToolRegistry {
 
         register(ToolDefinition(
             name = "system.status",
-            description = "Obtener el estado actual del dispositivo (batería, almacenamiento, conectividad).",
+            description = "Obtener el estado actual del dispositivo (batería, almacenamiento, conectividad, Bypass Charging).",
             parameters = """{}""",
             risk = ToolRisk.READ,
             example = "system.status()",
             category = "sistema"
+        ))
+
+        // ============ PERSONAS Y VOZ ============
+        register(ToolDefinition(
+            name = "persona.switch",
+            description = "Cambiar la personalidad del asistente entre 6 personas: Hestia (hogar), Metis (estrategia), Argus (seguridad), Athena (sabiduría), Selene (noche), Iris (social).",
+            parameters = """{"persona": "string (hestia|metis|argus|athena|selene|iris)"}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "persona.switch(persona=\"metis\")",
+            category = "identidad"
+        ))
+
+        register(ToolDefinition(
+            name = "persona.list",
+            description = "Listar las 6 personas disponibles con su descripción y estado activo.",
+            parameters = """{}""",
+            risk = ToolRisk.READ,
+            example = "persona.list()",
+            category = "identidad"
+        ))
+
+        register(ToolDefinition(
+            name = "voice.speak",
+            description = "Sintetizar texto a voz usando Piper TTS (offline) u OpenAI/ElevenLabs (cloud). Usa la voz de la persona activa.",
+            parameters = """{"text": "string (texto a hablar)", "persona": "string? (persona específica, opcional)", "mode": "string? (offline|cloud|auto, default: auto)"}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "voice.speak(text=\"Buenos días, tu briefing está listo\")",
+            category = "voz"
+        ))
+
+        register(ToolDefinition(
+            name = "voice.set_mode",
+            description = "Cambiar el modo de voz: offline (Piper 100% privado), cloud (OpenAI/ElevenLabs máxima naturalidad), auto (según conexión).",
+            parameters = """{"mode": "string (offline|cloud|auto)"}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "voice.set_mode(mode=\"offline\")",
+            category = "voz"
+        ))
+
+        // ============ INTERFAZ HÍBRIDA ============
+        register(ToolDefinition(
+            name = "canvas.show",
+            description = "Mostrar el Canvas en pantalla completa para tareas visuales: Vibe Coder (código), visualizaciones, Morning Briefing, editor de SOUL.md.",
+            parameters = """{"mode": "string (coder|visualizer|briefing|editor)", "content": "string? (HTML o código a mostrar, opcional)"}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "canvas.show(mode=\"coder\", content=\"<h1>Hola</h1>\")",
+            category = "interfaz"
+        ))
+
+        register(ToolDefinition(
+            name = "canvas.hide",
+            description = "Ocultar el Canvas y volver a la vista normal.",
+            parameters = """{}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "canvas.hide()",
+            category = "interfaz"
+        ))
+
+        register(ToolDefinition(
+            name = "smartcast.project",
+            description = "Proyectar el Canvas a una pantalla externa via Z-SmartCast. Modo mirror (duplicar) o extend (extender).",
+            parameters = """{"mode": "string? (mirror|extend, default: mirror)"}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "smartcast.project(mode=\"mirror\")",
+            category = "interfaz"
+        ))
+
+        register(ToolDefinition(
+            name = "smartcast.stop",
+            description = "Detener la proyección a pantalla externa.",
+            parameters = """{}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "smartcast.stop()",
+            category = "interfaz"
+        ))
+
+        register(ToolDefinition(
+            name = "splitscreen.enter",
+            description = "Activar pantalla dividida. El Canvas se muestra en una mitad y la app actual en la otra.",
+            parameters = """{"ratio": "float? (0.4|0.5|0.6, proporción del Canvas, default: 0.5)", "canvas_on_top": "boolean? (Canvas arriba, default: true)"}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "splitscreen.enter(ratio=0.5, canvas_on_top=true)",
+            category = "interfaz"
+        ))
+
+        register(ToolDefinition(
+            name = "splitscreen.exit",
+            description = "Salir del modo pantalla dividida.",
+            parameters = """{}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "splitscreen.exit()",
+            category = "interfaz"
+        ))
+
+        // ============ ORQUESTACIÓN NUBIA ============
+        register(ToolDefinition(
+            name = "bypass.curate",
+            description = "Forzar la curación de memoria (indexación pesada). Se recomienda solo durante Bypass Charging para no estresar la batería.",
+            parameters = """{}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "bypass.curate()",
+            category = "nubia"
+        ))
+
+        register(ToolDefinition(
+            name = "bypass.status",
+            description = "Verificar si el Bypass Charging está activo y si hay curación en progreso.",
+            parameters = """{}""",
+            risk = ToolRisk.READ,
+            example = "bypass.status()",
+            category = "nubia"
+        ))
+
+        register(ToolDefinition(
+            name = "camera.snap",
+            description = "Tomar una foto con la cámara usando Neovision AI del Nubia Neo 3.",
+            parameters = """{"camera": "string? (back|front, default: back)", "flash": "boolean? (usar flash, default: false)"}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "camera.snap(camera=\"back\", flash=false)",
+            category = "nubia"
+        ))
+
+        register(ToolDefinition(
+            name = "scam.detect",
+            description = "Analizar un mensaje o notificación para detectar si es un scam/phishing. Argus lo ejecuta automáticamente en notificaciones.",
+            parameters = """{"text": "string (texto a analizar)", "source": "string? (sms|email|whatsapp|unknown, default: unknown)"}""",
+            risk = ToolRisk.READ,
+            example = "scam.detect(text=\"Ha ganado un premio...\", source=\"sms\")",
+            category = "seguridad"
+        ))
+
+        register(ToolDefinition(
+            name = "translate",
+            description = "Traducir texto entre idiomas. Funciona offline con modelo local cuando no hay internet.",
+            parameters = """{"text": "string (texto a traducir)", "from": "string (idioma origen, ej: en)", "to": "string (idioma destino, ej: es)"}""",
+            risk = ToolRisk.READ,
+            example = "translate(text=\"Hello world\", from=\"en\", to=\"es\")",
+            category = "utilidades"
+        ))
+
+        register(ToolDefinition(
+            name = "memory.briefing",
+            description = "Generar el Morning Briefing: resumen del día, calendario, mensajes pendientes, clima, tareas. Se puede hablar con voz.",
+            parameters = """{"speak": "boolean? (leer en voz alta, default: true)", "persona": "string? (persona para la voz, default: activa)"}""",
+            risk = ToolRisk.READ,
+            example = "memory.briefing(speak=true, persona=\"hestia\")",
+            category = "memoria"
+        ))
+
+        register(ToolDefinition(
+            name = "memory.people",
+            description = "Consultar el People Graph: relaciones, contactos frecuentes, interacciones recientes.",
+            parameters = """{"name": "string? (nombre del contacto, opcional)", "depth": "int? (profundidad del grafo, default: 1)"}""",
+            risk = ToolRisk.READ,
+            example = "memory.people(name=\"Sarah\", depth=2)",
+            category = "memoria"
+        ))
+
+        register(ToolDefinition(
+            name = "profile.encrypt",
+            description = "Encriptar el Living Profile con AES-256-GCM. Se ejecuta automáticamente, pero el usuario puede forzarlo.",
+            parameters = """{}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "profile.encrypt()",
+            category = "seguridad"
+        ))
+
+        register(ToolDefinition(
+            name = "profile.backup",
+            description = "Crear backup encriptado del Living Profile en SecureVault.",
+            parameters = """{}""",
+            risk = ToolRisk.WRITE_SAFE,
+            example = "profile.backup()",
+            category = "seguridad"
         ))
     }
 

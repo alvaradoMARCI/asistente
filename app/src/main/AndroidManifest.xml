@@ -282,6 +282,55 @@
         </service>
 
         <!-- ========================================== -->
+        <!-- CAPA V4: FLOATING BUBBLE MECHA             -->
+        <!-- ========================================== -->
+        <service
+            android:name=".ui.bubble.FloatingBubbleMecha"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false">
+            <intent-filter>
+                <action android:name="com.nubiaagent.action.SHOW_BUBBLE" />
+                <action android:name="com.nubiaagent.action.HIDE_BUBBLE" />
+                <action android:name="com.nubiaagent.action.UPDATE_BUBBLE_STATUS" />
+            </intent-filter>
+        </service>
+
+        <!-- ========================================== -->
+        <!-- CAPA V4: CANVAS CONTROLLER                -->
+        <!-- ========================================== -->
+        <service
+            android:name=".ui.canvas.CanvasController"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false">
+            <intent-filter>
+                <action android:name="com.nubiaagent.action.SHOW_CANVAS" />
+                <action android:name="com.nubiaagent.action.HIDE_CANVAS" />
+                <action android:name="com.nubiaagent.action.CANVAS_SET_MODE" />
+                <action android:name="com.nubiaagent.action.CANVAS_LOAD_CONTENT" />
+            </intent-filter>
+        </service>
+
+        <!-- ========================================== -->
+        <!-- CAPA V4: LIVE ISLAND 2.0                  -->
+        <!-- ========================================== -->
+        <service
+            android:name=".ui.liveisland.LiveIsland2"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false">
+            <intent-filter>
+                <action android:name="com.nubiaagent.action.SHOW_LIVE_ISLAND" />
+                <action android:name="com.nubiaagent.action.UPDATE_LIVE_ISLAND" />
+                <action android:name="com.nubiaagent.action.DISMISS_LIVE_ISLAND" />
+            </intent-filter>
+        </service>
+
+        <!-- ========================================== -->
         <!-- BROADCAST RECEIVERS                        -->
         <!-- ========================================== -->
         

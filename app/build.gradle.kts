@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "3.0.0-alpha"
+        versionName = "4.0.0-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -126,6 +126,12 @@ dependencies {
     implementation("androidx.camera:camera-core:1.3.1")
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
+
+    // WebView - Canvas Controller
+    implementation("androidx.webkit:webkit:1.9.0")
+
+    // MediaRouter - Z-SmartCast bridge
+    implementation("androidx.mediarouter:mediarouter:1.6.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
