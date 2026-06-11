@@ -47,22 +47,37 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon --warning-mode all
 
+      - name: Rename Debug APK
+        run: |
+          mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/dayana-v4-debug.apk
+
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: dayana-v4-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: dayana-v4-debug-apk
+          path: app/build/outputs/apk/debug/dayana-v4-debug.apk
 
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon --warning-mode all
         continue-on-error: true
 
+      - name: Rename Release APK
+        if: always()
+        run: |
+          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/dayana-v4-release.apk
+          elif [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/dayana-v4-release-unsigned.apk
+          fi
+
       - name: Upload Release APK
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dayana-v4-release
-          path: app/build/outputs/apk/release/*.apk
+          name: dayana-v4-release-apk
+          path: |
+            app/build/outputs/apk/release/dayana-v4-release.apk
+            app/build/outputs/apk/release/dayana-v4-release-unsigned.apk
 
       - name: Create Release
         if: github.ref == 'refs/heads/main'
@@ -92,5 +107,9 @@ jobs:
             Si un proveedor falla, automaticamente prueba el siguiente.
           draft: false
           prerelease: false
+          files: |
+            app/build/outputs/apk/debug/dayana-v4-debug.apk
+            app/build/outputs/apk/release/dayana-v4-release.apk
+            app/build/outputs/apk/release/dayana-v4-release-unsigned.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
