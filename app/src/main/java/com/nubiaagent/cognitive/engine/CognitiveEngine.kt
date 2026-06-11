@@ -232,21 +232,31 @@ class CognitiveEngine : LifecycleService() {
             _engineState.value = EngineState.LOADING
 
             try {
-                // En la implementación real, esto llamaría a:
-                // modelHandle = LlamaNative.llamaInitModel(
-                //     modelPath,
-                //     inferenceConfig.nThreads,
-                //     inferenceConfig.contextSize,
-                //     inferenceConfig.gpuLayers
-                // )
+                // Intentar cargar librería nativa; si falla, usar simulación
+                val nativeAvailable = LlamaNative.ensureLoaded()
 
-                // PLACEHOLDER: Simulación de carga mientras se compila llama.cpp
+                if (nativeAvailable) {
+                    try {
+                        modelHandle = LlamaNative.llamaInitModel(
+                            modelPath,
+                            inferenceConfig.nThreads,
+                            inferenceConfig.contextSize,
+                            inferenceConfig.gpuLayers
+                        )
+                        isModelLoaded = modelHandle != 0L
+                        Log.i(TAG, "Modelo nativo cargado: handle=$modelHandle")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error en carga nativa, usando simulación", e)
+                    }
+                }
+
+                // PLACEHOLDER: Simulación de carga si lo nativo no está disponible
                 Log.i(TAG, "Cargando modelo desde: $modelPath")
                 Log.i(TAG, "Config: threads=${inferenceConfig.nThreads}, " +
                         "ctx=${inferenceConfig.contextSize}, " +
                         "batch=${inferenceConfig.batchSize}")
 
-                // Simular tiempo de carga (en producción, llama.cpp carga en 2-5s)
+                // Simulación cuando libllama.so no está compilado aún
                 delay(1500)
 
                 // Verificar que el modelo se cargó
@@ -559,9 +569,34 @@ class CognitiveEngine : LifecycleService() {
      * }
      * ```
      */
+    /**
+     * Interfaz JNI para llama.cpp.
+     *
+     * Carga diferida: la librería nativa se carga solo cuando se necesita,
+     * evitando UnsatisfiedLinkError si libllama.so no está disponible aún.
+     * Esto permite que la app compile y funcione en modo simulación
+     * mientras se compila llama.cpp para Android (NDK + CMake).
+     */
     object LlamaNative {
-        init {
-            System.loadLibrary("llama")
+        @Volatile
+        private var libraryLoaded = false
+        @Volatile
+        private var loadFailed = false
+
+        fun ensureLoaded(): Boolean {
+            if (libraryLoaded) return true
+            if (loadFailed) return false
+            return try {
+                System.loadLibrary("llama")
+                libraryLoaded = true
+                Log.i("NubiaAgent/Cognition", "libllama.so cargada exitosamente")
+                true
+            } catch (e: UnsatisfiedLinkError) {
+                loadFailed = true
+                Log.w("NubiaAgent/Cognition",
+                    "libllama.so no disponible - modo simulación activo", e)
+                false
+            }
         }
 
         @JvmStatic

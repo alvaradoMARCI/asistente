@@ -104,6 +104,11 @@ class WakeWordService : LifecycleService() {
             }
             context.startService(intent)
         }
+
+        // Instancia activa para consulta de estado desde MainActivity
+        private var instance: WakeWordService? = null
+
+        fun isRunning(): Boolean = instance?.isListening == true
     }
 
     // Estado del servicio
@@ -136,8 +141,13 @@ class WakeWordService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         Log.d(TAG, "WakeWordService onCreate")
-        LibVosk.setLogLevel(LogLevel.INFO)
+        try {
+            LibVosk.setLogLevel(LogLevel.INFO)
+        } catch (e: UnsatisfiedLinkError) {
+            Log.w(TAG, "Vosk native library no disponible aún", e)
+        }
         createNotificationChannel()
     }
 
@@ -505,6 +515,7 @@ class WakeWordService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        instance = null
         stopListening()
         super.onDestroy()
         Log.i(TAG, "WakeWordService destruido")

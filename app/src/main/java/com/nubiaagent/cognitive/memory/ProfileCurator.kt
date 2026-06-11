@@ -612,9 +612,6 @@ LIVING PROFILE ACTUALIZADO:"""
 
 /**
  * Hecho extraído por el ProfileCurator.
+ * Alias de ExtractedFact del CurationAgent para evitar duplicados.
  */
-data class ExtractedFact(
-    val category: String,
-    val content: String,
-    val importance: Float
-)
+typealias ProfileExtractedFact = ExtractedFact

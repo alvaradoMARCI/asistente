@@ -250,20 +250,6 @@
             </intent-filter>
         </service>
 
-        <!-- Permisos adicionales para Capa Cognitiva -->
-        <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-
-        <!-- SMS para herramienta sms.send -->
-        <uses-permission android:name="android.permission.SEND_SMS" />
-        <uses-permission android:name="android.permission.READ_CONTACTS" />
-
-        <!-- Calendario para herramienta calendar.read/write -->
-        <uses-permission android:name="android.permission.READ_CALENDAR" />
-        <uses-permission android:name="android.permission.WRITE_CALENDAR" />
-
-        <!-- Llamadas para herramienta call.make -->
-        <uses-permission android:name="android.permission.CALL_PHONE" />
-
         <!-- ========================================== -->
         <!-- CAPA DE EJECUCIÓN - OVERLAY SERVICE        -->
         <!-- ========================================== -->

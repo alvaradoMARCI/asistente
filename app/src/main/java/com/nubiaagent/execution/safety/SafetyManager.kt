@@ -107,7 +107,7 @@ class SafetyManager(
             AuditDatabase::class.java,
             "nubia_safety_audit"
         )
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(true)
             .build()
             .auditEntryDao()
     }

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- NubiaAgent Mecha Futurista Color Palette -->
+    <!-- Shadow Black -->
+    <color name="shadow_black">#FF1A1A2E</color>
+    <color name="shadow_black_variant">#FF16213E</color>
+    <!-- Cyber Silver -->
+    <color name="cyber_silver">#FFC0C0C0</color>
+    <color name="cyber_silver_dark">#FF808080</color>
+    <!-- Accent Red -->
+    <color name="nubia_red">#FFE94560</color>
+    <color name="nubia_red_dark">#FFB8304F</color>
+    <!-- Deep Blue -->
+    <color name="deep_blue">#FF0F3460</color>
+    <!-- Purple -->
+    <color name="nubia_purple">#FF533483</color>
+    <!-- Standard -->
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <color name="transparent">#00000000</color>
+</resources>
