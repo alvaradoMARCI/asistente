@@ -317,7 +317,7 @@ class VibeCoder(private val context: Context) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canvas - \${escapeHtml(prompt)}</title>
+    <title>Canvas - ${escapeHtml(prompt)}</title>
     <style>
         * {
             margin: 0;
@@ -440,7 +440,7 @@ class VibeCoder(private val context: Context) {
     <div class="container">
         <div class="icon">🎨</div>
         <h1>Canvas Generado</h1>
-        <div class="prompt">"\${escapeHtml(prompt)}"</div>
+        <div class="prompt">"${escapeHtml(prompt)}"</div>
         <div class="status">
             La generación personalizada con IA estará disponible próximamente.<br>
             <span class="badge">Generación por LLM pendiente</span>
@@ -1156,13 +1156,15 @@ private object TodoTemplate {
                 return true;
             });
 
-            list.innerHTML = filtered.length ? filtered.map(t => `
-                <li class="todo-item \${t.done ? 'done' : ''}">
-                    <div class="checkbox \${t.done ? 'checked' : ''}" onclick="toggleTodo(\${t.id})"></div>
-                    <span class="todo-text">\${escapeHtml(t.text)}</span>
-                    <button class="delete-btn" onclick="deleteTodo(\${t.id})">✕</button>
-                </li>
-            `).join('') : '<div class="empty">No hay tareas que mostrar</div>';
+            list.innerHTML = filtered.length ? filtered.map(function(t) {
+                var cls = t.done ? 'done' : '';
+                var chk = t.done ? 'checked' : '';
+                return '<li class="todo-item ' + cls + '">' +
+                    '<div class="checkbox ' + chk + '" onclick="toggleTodo(' + t.id + ')"></div>' +
+                    '<span class="todo-text">' + escapeHtml(t.text) + '</span>' +
+                    '<button class="delete-btn" onclick="deleteTodo(' + t.id + ')">✕</button>' +
+                '</li>';
+            }).join('') : '<div class="empty">No hay tareas que mostrar</div>';
 
             const done = todos.filter(t => t.done).length;
             document.getElementById('totalStat').textContent = todos.length;

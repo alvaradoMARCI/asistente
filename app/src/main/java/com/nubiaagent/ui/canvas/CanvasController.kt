@@ -81,7 +81,7 @@ class CanvasController : Service() {
         private const val COLOR_GREEN_NEON = "#00FF66"
 
         // Plantilla HTML base con estética Mecha
-        private const val BASE_HTML_TEMPLATE = """
+        private val BASE_HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
