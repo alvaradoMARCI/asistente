@@ -109,6 +109,11 @@ class ZSmartCastBridge(private val context: Context) {
                     override fun onRouteGrouped(router: MediaRouter?, info: MediaRouter.RouteInfo?, group: MediaRouter.RouteGroup?, reason: Int) {
                         Log.d(TAG, "Ruta agrupada: ${info?.name}, razón: $reason")
                     }
+
+                    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+                    override fun onRouteUngrouped(router: MediaRouter?, info: MediaRouter.RouteInfo?, group: MediaRouter.RouteGroup?) {
+                        Log.d(TAG, "Ruta desagrupada: ${info?.name}")
+                    }
                 }
             )
 
