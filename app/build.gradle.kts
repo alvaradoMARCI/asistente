@@ -5,12 +5,15 @@ plugins {
 }
 
 // Leer API keys desde secrets.properties (no se sube a GitHub)
-val secretsFile = rootProject.file("secrets.properties")
-val secrets = if (secretsFile.exists()) {
-    java.util.Properties().apply { load(secretsFile.inputStream()) }
-} else {
-    java.util.Properties().apply {
-        // Valores vacíos para CI - se inyectan via GitHub Secrets
+import java.util.Properties
+import java.io.FileInputStream
+
+val secrets = Properties().apply {
+    val secretsFile = rootProject.file("secrets.properties")
+    if (secretsFile.exists()) {
+        load(FileInputStream(secretsFile))
+    } else {
+        // CI: se inyectan via GitHub Secrets como env vars
         setProperty("GEMINI_API_KEY", System.getenv("GEMINI_API_KEY") ?: "")
         setProperty("GROQ_API_KEY", System.getenv("GROQ_API_KEY") ?: "")
         setProperty("OPENAI_API_KEY", System.getenv("OPENAI_API_KEY") ?: "")
