@@ -7,6 +7,7 @@
     - Capturar eventos de tipo y ventana
     - Recuperar nodos interactivos
     - Reportar view IDs para identificación precisa
+    - Ejecutar gestos (taps, swipes, scrolls) en nombre del usuario
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeAllMask"
@@ -14,7 +15,9 @@
     android:accessibilityFlags="flagDefault|flagReportViewIds|flagIncludeNotImportantViews|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:canRequestTouchExplorationMode="true"
+    android:canPerformGestures="true"
     android:description="@string/accessibility_service_description"
+    android:summary="@string/accessibility_service_summary"
     android:notificationTimeout="100"
     android:packageNames=""
     android:settingsActivity="com.nubiaagent.MainActivity" />

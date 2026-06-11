@@ -2,6 +2,7 @@ package com.nubiaagent
 
 import android.Manifest
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -34,6 +35,12 @@ import com.nubiaagent.cognitive.engine.SettingsActivity
  * 3. Proporcionar controles directos para activar servicios especiales
  * 4. Mostrar estado de la Capa de Percepción
  * 5. Botón de configuración del motor de IA
+ *
+ * OPTIMIZACIÓN PARA NUBIA/MyOS:
+ * - Los dispositivos Nubia tienen un sistema de seguridad que bloquea
+ *   automáticamente permisos sensibles (SMS, Accesibilidad, Notificaciones)
+ * - Se incluyen intents directos y guías específicas para Nubia
+ * - Se intentan múltiples rutas de configuración para maximizar compatibilidad
  */
 class MainActivity : AppCompatActivity() {
 
@@ -44,6 +51,7 @@ class MainActivity : AppCompatActivity() {
     private var accessibilityButton: Button? = null
     private var notificationButton: Button? = null
     private var overlayButton: Button? = null
+    private var nubiaWarningText: TextView? = null
 
     // Colores Mecha Futurista
     private val COLOR_BG = 0xFF1A1A2E.toInt()
@@ -55,6 +63,17 @@ class MainActivity : AppCompatActivity() {
     private val COLOR_RED = 0xFFFF1744.toInt()
     private val COLOR_TEXT = 0xFFC0C0C0.toInt()
     private val COLOR_TEXT_DIM = 0xFF808080.toInt()
+    private val COLOR_YELLOW = 0xFFFFEB3B.toInt()
+
+    // Detectar si es un dispositivo Nubia/ZTE
+    private val isNubiaDevice: Boolean by lazy {
+        Build.MANUFACTURER.equals("nubia", ignoreCase = true) ||
+        Build.MANUFACTURER.equals("zte", ignoreCase = true) ||
+        Build.BRAND.equals("nubia", ignoreCase = true) ||
+        Build.BRAND.equals("zte", ignoreCase = true) ||
+        Build.MODEL.contains("nubia", ignoreCase = true) ||
+        Build.MODEL.contains("Neo", ignoreCase = true)
+    }
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -63,6 +82,15 @@ class MainActivity : AppCompatActivity() {
         if (allGranted) {
             updateStatus()
         } else {
+            // En Nubia, algunos permisos se bloquean automáticamente
+            // Mostrar guía específica
+            val deniedPerms = permissions.filter { !it.value }.keys
+            val hasSmsDenied = deniedPerms.any {
+                it.contains("SMS") || it.contains("CALL") || it.contains("PHONE")
+            }
+            if (hasSmsDenied && isNubiaDevice) {
+                showNubiaPermissionGuide("SMS/Llamadas")
+            }
             Toast.makeText(this, "Permisos requeridos para funcionar", Toast.LENGTH_LONG).show()
         }
     }
@@ -82,15 +110,32 @@ class MainActivity : AppCompatActivity() {
         // ===== TÍTULO =====
         rootLayout.addView(createTitle("DAYANA"))
         rootLayout.addView(createSubtitle("Asistente Inteligente v4"))
-        rootLayout.addView(createSpacer(24))
+        rootLayout.addView(createSpacer(16))
+
+        // ===== AVISO NUBIA (si aplica) =====
+        if (isNubiaDevice) {
+            nubiaWarningText = TextView(this).apply {
+                text = "⚠ DISPOSITIVO NUBIA DETECTADO\nTu teléfono tiene seguridad extra que puede bloquear permisos. Usa los botones de abajo para activar cada permiso manualmente."
+                setTextColor(COLOR_YELLOW)
+                textSize = 12f
+                setPadding(16, 12, 16, 12)
+                setBackgroundColor(0xFF332200.toInt())
+            }
+            rootLayout.addView(nubiaWarningText)
+            rootLayout.addView(createSpacer(16))
+        }
 
         // ===== PERMISOS ESPECIALES (SECCIÓN CRÍTICA) =====
         rootLayout.addView(createSectionTitle("PERMISOS ESPECIALES"))
-        rootLayout.addView(createInfoText("Estos permisos NO aparecen en Ajustes → App → Permisos.\nSe activan desde aquí directamente."))
+        rootLayout.addView(createInfoText(
+            "Estos permisos NO aparecen en Ajustes → App → Permisos.\n" +
+            "Se activan desde Ajustes del Sistema (Accesibilidad / Notificaciones)."
+        ))
         rootLayout.addView(createSpacer(12))
 
         // --- Accesibilidad ---
         rootLayout.addView(createLabel("1. Servicio de Accesibilidad"))
+        rootLayout.addView(createInfoText("Permite a Dayana ver la pantalla y ejecutar acciones"))
         accessibilityStatus = createStatusText("Verificando...")
         rootLayout.addView(accessibilityStatus)
         rootLayout.addView(createSpacer(4))
@@ -103,6 +148,7 @@ class MainActivity : AppCompatActivity() {
 
         // --- Notificaciones ---
         rootLayout.addView(createLabel("2. Acceso a Notificaciones"))
+        rootLayout.addView(createInfoText("Permite a Dayana leer y clasificar notificaciones"))
         notificationStatus = createStatusText("Verificando...")
         rootLayout.addView(notificationStatus)
         rootLayout.addView(createSpacer(4))
@@ -115,6 +161,7 @@ class MainActivity : AppCompatActivity() {
 
         // --- Overlay ---
         rootLayout.addView(createLabel("3. Superposición (Overlay)"))
+        rootLayout.addView(createInfoText("Permite a Dayana mostrar respuestas flotantes"))
         overlayStatus = createStatusText("Verificando...")
         rootLayout.addView(overlayStatus)
         rootLayout.addView(createSpacer(4))
@@ -127,8 +174,10 @@ class MainActivity : AppCompatActivity() {
 
         // ===== PERMISOS NORMALES =====
         rootLayout.addView(createSectionTitle("PERMISOS DE LA APP"))
+        rootLayout.addView(createInfoText("Micrófono, GPS, Cámara, SMS, Contactos, etc."))
+        rootLayout.addView(createSpacer(4))
         val normalPermsButton = Button(this).apply {
-            text = "OTORGAR PERMISOS (MIC, GPS, ETC)"
+            text = "OTORGAR TODOS LOS PERMISOS"
             setTextColor(0xFFFFFFFF.toInt())
             setBackgroundColor(COLOR_SURFACE)
             setPadding(24, 20, 24, 20)
@@ -136,6 +185,20 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { checkAndRequestNormalPermissions() }
         }
         rootLayout.addView(normalPermsButton)
+
+        // Botón especial para Nubia: abrir ajustes de permisos del sistema
+        if (isNubiaDevice) {
+            rootLayout.addView(createSpacer(8))
+            val nubiaPermButton = Button(this).apply {
+                text = "🔧 AJUSTES DE PERMISOS NUBIA"
+                setTextColor(COLOR_YELLOW)
+                setBackgroundColor(0xFF332200.toInt())
+                setPadding(24, 20, 24, 20)
+                textSize = 13f
+                setOnClickListener { openNubiaPermissionSettings() }
+            }
+            rootLayout.addView(nubiaPermButton)
+        }
         rootLayout.addView(createSpacer(24))
 
         // ===== ESTADO DE MÓDULOS =====
@@ -166,6 +229,20 @@ class MainActivity : AppCompatActivity() {
         rootLayout.addView(settingsButton)
         rootLayout.addView(createSpacer(12))
 
+        // Botón de guía Nubia
+        if (isNubiaDevice) {
+            val guideButton = Button(this).apply {
+                text = "📖 GUÍA DE PERMISOS NUBIA"
+                setTextColor(COLOR_YELLOW)
+                setBackgroundColor(0xFF332200.toInt())
+                setPadding(24, 16, 24, 16)
+                textSize = 13f
+                setOnClickListener { showNubiaFullGuide() }
+            }
+            rootLayout.addView(guideButton)
+            rootLayout.addView(createSpacer(12))
+        }
+
         val refreshButton = Button(this).apply {
             text = "REFRESCAR ESTADO"
             setTextColor(COLOR_TEXT)
@@ -192,44 +269,84 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * Abre la configuración de Accesibilidad.
-     * Primero intenta abrir directamente el servicio de Dayana,
-     * si no funciona, abre la lista general de accesibilidad.
+     * Estrategia multi-nivel para Nubia/MyOS:
+     * 1. Intent directo a los detalles del servicio
+     * 2. Intent a accesibilidad general con fragment_args
+     * 3. Fallback a accesibilidad general
      */
     private fun openAccessibilitySettings() {
+        // Estrategia 1: Intent directo al servicio de accesibilidad de Dayana
         try {
-            // Intent 1: Abrir directamente los detalles del servicio de accesibilidad
             val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-            // Intentar abrir directamente la pantalla del servicio
+            // En algunos dispositivos, esto abre directamente el servicio
             val componentName = ComponentName(this, ScreenObserver::class.java)
-            intent.putExtra(":settings:fragment_args_key", componentName.flattenToString())
+            val flatName = componentName.flattenToString()
+
+            // Intentar con settings fragment args (funciona en algunos dispositivos)
+            intent.putExtra(":settings:fragment_args_key", flatName)
+            intent.putExtra(":settings:show_fragment_args", flatName)
 
             startActivity(intent)
-            Toast.makeText(this, "Busca 'Dayana' en la lista y actívalo", Toast.LENGTH_LONG).show()
+            Toast.makeText(this,
+                "Busca 'Dayana - Visión de Pantalla' en la lista y actívalo",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        } catch (_: Exception) { }
 
-        } catch (e: Exception) {
-            // Fallback: abrir accesibilidad general
-            try {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                Toast.makeText(this, "Busca 'Dayana' en Servicios de Accesibilidad y actívalo", Toast.LENGTH_LONG).show()
-            } catch (e2: Exception) {
-                Toast.makeText(this, "No se pudo abrir configuración de accesibilidad", Toast.LENGTH_LONG).show()
-            }
+        // Estrategia 2: Accesibilidad general
+        try {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            Toast.makeText(this,
+                "Busca 'Dayana' en Servicios de Accesibilidad y actívalo",
+                Toast.LENGTH_LONG
+            ).show()
+        } catch (e2: Exception) {
+            Toast.makeText(this,
+                "No se pudo abrir configuración de accesibilidad",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
     /**
      * Abre la configuración de acceso a notificaciones.
+     * Intenta primero el intent directo, luego el general.
      */
     private fun openNotificationListenerSettings() {
+        // Estrategia 1: Intent directo a los detalles del NotificationListener
+        try {
+            val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            // Intentar abrir directamente en el servicio de Dayana
+            val componentName = ComponentName(this, NotificationInterceptor::class.java)
+            intent.putExtra(":settings:fragment_args_key", componentName.flattenToString())
+
+            startActivity(intent)
+            Toast.makeText(this,
+                "Busca 'Dayana - Notificaciones' y actívalo",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        } catch (_: Exception) { }
+
+        // Estrategia 2: General
         try {
             val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
-            Toast.makeText(this, "Busca 'Dayana' y actíva el acceso a notificaciones", Toast.LENGTH_LONG).show()
+            Toast.makeText(this,
+                "Busca 'Dayana' y actíva el acceso a notificaciones",
+                Toast.LENGTH_LONG
+            ).show()
         } catch (e: Exception) {
-            Toast.makeText(this, "No se pudo abrir configuración de notificaciones", Toast.LENGTH_LONG).show()
+            Toast.makeText(this,
+                "No se pudo abrir configuración de notificaciones",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -247,6 +364,114 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, "No se pudo abrir configuración de overlay", Toast.LENGTH_LONG).show()
         }
+    }
+
+    /**
+     * Abre los ajustes de permisos específicos de Nubia/MyOS.
+     * En dispositivos Nubia, hay un gestor de permisos adicional
+     * que puede bloquear permisos sensibles automáticamente.
+     */
+    private fun openNubiaPermissionSettings() {
+        // Estrategia 1: Intent directo a los detalles de la app en Ajustes
+        try {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            intent.data = Uri.parse("package:$packageName")
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+            Toast.makeText(this,
+                "Revisa TODOS los permisos. En Nubia debes ir a:\n" +
+                "Ajustes → Apps → Dayana → Permisos",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        } catch (_: Exception) { }
+
+        // Estrategia 2: Ajustes de apps generales
+        try {
+            val intent = Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(this, "Abre Ajustes → Apps → Dayana manualmente", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // ==================== GUÍAS NUBIA ====================
+
+    /**
+     * Muestra una guía específica para desbloquear permisos en Nubia/MyOS.
+     */
+    private fun showNubiaPermissionGuide(permType: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Permiso bloqueado: $permType")
+            .setMessage(
+                "Tu Nubia bloquea automáticamente permisos sensibles.\n\n" +
+                "Para permitir el acceso a $permType:\n\n" +
+                "1. Ve a Ajustes → Apps → Dayana\n" +
+                "2. Toca 'Permisos'\n" +
+                "3. Busca '$permType'\n" +
+                "4. Cambia a 'Permitir' (no 'Automático')\n\n" +
+                "Si no ves la opción, ve a:\n" +
+                "Ajustes → Seguridad → Gestor de permisos\n" +
+                "y busca Dayana en la lista."
+            )
+            .setPositiveButton("Abrir Ajustes de App") { _, _ ->
+                openNubiaPermissionSettings()
+            }
+            .setNegativeButton("Cerrar", null)
+            .show()
+    }
+
+    /**
+     * Muestra la guía completa de permisos para dispositivos Nubia.
+     */
+    private fun showNubiaFullGuide() {
+        AlertDialog.Builder(this)
+            .setTitle("📖 Guía de Permisos para Nubia")
+            .setMessage(
+                "GUÍA COMPLETA PARA NUBIA NEO 3 5G\n" +
+                "════════════════════════════════\n\n" +
+                "PASO 1: ACCESIBILIDAD\n" +
+                "• Ajustes → Accesibilidad\n" +
+                "• Busca 'Servicios descargados' o 'Downloaded services'\n" +
+                "• Toca 'Dayana - Visión de Pantalla'\n" +
+                "• Activa el interruptor\n" +
+                "• Confirma en el diálogo del sistema\n\n" +
+                "PASO 2: NOTIFICACIONES\n" +
+                "• Ajustes → Apps → Acceso especial a apps\n" +
+                "• Toca 'Acceso a notificaciones'\n" +
+                "• Busca 'Dayana - Notificaciones'\n" +
+                "• Activa el interruptor\n" +
+                "• Confirma en el diálogo del sistema\n\n" +
+                "PASO 3: OVERLAY\n" +
+                "• Ajustes → Apps → Acceso especial a apps\n" +
+                "• Toca 'Mostrar sobre otras apps'\n" +
+                "• Busca 'Dayana' y activa\n\n" +
+                "PASO 4: SMS Y LLAMADAS\n" +
+                "• Ajustes → Apps → Dayana → Permisos\n" +
+                "• Para cada permiso (SMS, Teléfono, Contactos):\n" +
+                "  - Cambia de 'Automático' a 'Permitir'\n" +
+                "  - El sistema puede mostrar una advertencia, acepta\n\n" +
+                "PASO 5: INICIO AUTOMÁTICO\n" +
+                "• Ajustes → Apps → Dayana\n" +
+                "• Busca 'Inicio automático' o 'Autostart'\n" +
+                "• Activa para que Dayana funcione al reiniciar\n\n" +
+                "PASO 6: BATERÍA\n" +
+                "• Ajustes → Batería → Dayana\n" +
+                "• Selecciona 'Sin restricciones'\n" +
+                "• Esto evita que el sistema cierre Dayana\n\n" +
+                "════════════════════════════════\n" +
+                "Si un permiso no aparece en la lista,\n" +
+                "reinicia el teléfono e intenta de nuevo."
+            )
+            .setPositiveButton("Entendido") { _, _ ->
+                // Abrir accesibilidad como primer paso
+                openAccessibilitySettings()
+            }
+            .setNeutralButton("Abrir Ajustes de App") { _, _ ->
+                openNubiaPermissionSettings()
+            }
+            .show()
     }
 
     // ==================== PERMISOS NORMALES ====================
@@ -288,6 +513,9 @@ class MainActivity : AppCompatActivity() {
         if (!hasPermission(Manifest.permission.READ_SMS)) {
             neededPermissions.add(Manifest.permission.READ_SMS)
         }
+        if (!hasPermission(Manifest.permission.RECEIVE_SMS)) {
+            neededPermissions.add(Manifest.permission.RECEIVE_SMS)
+        }
         if (!hasPermission(Manifest.permission.READ_PHONE_STATE)) {
             neededPermissions.add(Manifest.permission.READ_PHONE_STATE)
         }
@@ -310,6 +538,9 @@ class MainActivity : AppCompatActivity() {
         if (!hasPermission(Manifest.permission.READ_CALENDAR)) {
             neededPermissions.add(Manifest.permission.READ_CALENDAR)
         }
+        if (!hasPermission(Manifest.permission.WRITE_CALENDAR)) {
+            neededPermissions.add(Manifest.permission.WRITE_CALENDAR)
+        }
 
         // Cámara
         if (!hasPermission(Manifest.permission.CAMERA)) {
@@ -321,6 +552,21 @@ class MainActivity : AppCompatActivity() {
             if (!hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                 neededPermissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
+        }
+
+        // Multimedia (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (!hasPermission(Manifest.permission.READ_MEDIA_IMAGES)) {
+                neededPermissions.add(Manifest.permission.READ_MEDIA_IMAGES)
+            }
+            if (!hasPermission(Manifest.permission.READ_MEDIA_AUDIO)) {
+                neededPermissions.add(Manifest.permission.READ_MEDIA_AUDIO)
+            }
+        }
+
+        // Body sensors
+        if (!hasPermission(Manifest.permission.BODY_SENSORS)) {
+            neededPermissions.add(Manifest.permission.BODY_SENSORS)
         }
 
         if (neededPermissions.isNotEmpty()) {
@@ -337,15 +583,15 @@ class MainActivity : AppCompatActivity() {
 
         // Actualizar estados de permisos especiales
         accessibilityStatus?.apply {
-            text = if (isAccessibilityOn) "✓ ACTIVADO" else "✗ NO ACTIVADO — Requerido para ver la pantalla"
+            text = if (isAccessibilityOn) "✓ ACTIVADO" else "✗ NO ACTIVADO — Toca el botón para activar"
             setTextColor(if (isAccessibilityOn) COLOR_GREEN else COLOR_RED)
         }
         notificationStatus?.apply {
-            text = if (isNotificationOn) "✓ ACTIVADO" else "✗ NO ACTIVADO — Requerido para leer notificaciones"
+            text = if (isNotificationOn) "✓ ACTIVADO" else "✗ NO ACTIVADO — Toca el botón para activar"
             setTextColor(if (isNotificationOn) COLOR_GREEN else COLOR_RED)
         }
         overlayStatus?.apply {
-            text = if (isOverlayOn) "✓ ACTIVADO" else "✗ NO ACTIVADO — Requerido para mostrar respuestas"
+            text = if (isOverlayOn) "✓ ACTIVADO" else "✗ NO ACTIVADO — Toca el botón para activar"
             setTextColor(if (isOverlayOn) COLOR_GREEN else COLOR_RED)
         }
 
@@ -380,12 +626,18 @@ class MainActivity : AppCompatActivity() {
             appendLine("Dispositivo: ${Build.MODEL}")
             appendLine("Android: ${Build.VERSION.RELEASE}")
             appendLine("RAM: ${getTotalRAM()} MB")
+            if (isNubiaDevice) {
+                appendLine("Modo: Nubia/MyOS (ajustes especiales)")
+            }
             appendLine()
             if (allSpecial) {
                 appendLine("=== TODOS LOS PERMISOS LISTOS ===")
                 appendLine("Di \"Hey Dayana\" para interactuar")
             } else {
                 appendLine("!!! FALTAN PERMISOS ESPECIALES !!!")
+                if (isNubiaDevice) {
+                    appendLine("En Nubia: usa el botón 📖 GUÍA")
+                }
                 appendLine("Activa los 3 permisos de arriba")
             }
         }
@@ -411,23 +663,44 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
-        val serviceName = packageName + "/" +
-                ScreenObserver::class.java.canonicalName
-        val enabledServices = Settings.Secure.getString(
-            contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        return enabledServices.contains(serviceName)
+        // Método 1: Verificar vía Settings.Secure
+        try {
+            val serviceName = packageName + "/" +
+                    ScreenObserver::class.java.canonicalName
+            val enabledServices = Settings.Secure.getString(
+                contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            ) ?: return false
+
+            if (enabledServices.contains(serviceName)) return true
+
+            // Algunos dispositivos usan formato diferente
+            val flatComponent = ComponentName(this, ScreenObserver::class.java).flattenToString()
+            if (enabledServices.contains(flatComponent)) return true
+        } catch (_: Exception) { }
+
+        // Método 2: Verificar si la instancia del servicio está activa
+        return ScreenObserver.isRunning()
     }
 
     private fun isNotificationListenerEnabled(): Boolean {
-        val serviceName = packageName + "/" +
-                NotificationInterceptor::class.java.canonicalName
-        val enabledListeners = Settings.Secure.getString(
-            contentResolver,
-            "enabled_notification_listeners"
-        ) ?: return false
-        return enabledListeners.contains(serviceName)
+        // Método 1: Verificar vía Settings.Secure
+        try {
+            val serviceName = packageName + "/" +
+                    NotificationInterceptor::class.java.canonicalName
+            val enabledListeners = Settings.Secure.getString(
+                contentResolver,
+                "enabled_notification_listeners"
+            ) ?: return false
+
+            if (enabledListeners.contains(serviceName)) return true
+
+            // Algunos dispositivos usan formato diferente
+            val flatComponent = ComponentName(this, NotificationInterceptor::class.java).flattenToString()
+            if (enabledListeners.contains(flatComponent)) return true
+        } catch (_: Exception) { }
+
+        return false
     }
 
     private fun getTotalRAM(): Long {
