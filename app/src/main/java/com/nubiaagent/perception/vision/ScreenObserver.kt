@@ -569,6 +569,8 @@ class ScreenObserver : AccessibilityService() {
                             height = SCREENSHOT_HEIGHT
                         )
                     )
+                } else {
+                    Log.w(TAG, "Screenshot via shell: archivo vacío o no creado")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Screencap via shell falló", e)

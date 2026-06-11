@@ -203,7 +203,7 @@ class NotificationInterceptor : NotificationListenerService() {
         if (extras == null) return ""
         return extras.getString(Notification.EXTRA_TITLE)?.toString()
             ?: if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                extras.getCharSequence(Notification.EXTRA_TITLE_TEXT)?.toString()
+                extras.getCharSequence("android.title.unicodeWrapped")?.toString()
             } else {
                 null
             }

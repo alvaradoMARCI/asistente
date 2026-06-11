@@ -100,6 +100,10 @@ class ZSmartCastBridge(private val context: Context) {
                             isProjecting = false
                         }
                     }
+
+                    override fun onRouteChanged(router: MediaRouter?, info: MediaRouter.RouteInfo?) {
+                        Log.d(TAG, "Ruta cambiada: ${info?.name}")
+                    }
                 }
             )
 
@@ -142,7 +146,11 @@ class ZSmartCastBridge(private val context: Context) {
                 // Fallback: usar MediaRouter nativo de Android
                 val selectedRoute = mediaRouter?.getSelectedRoute(MediaRouter.ROUTE_TYPE_LIVE_VIDEO)
                 if (selectedRoute != null && selectedRoute.name != "Phone") {
-                    selectedRoute.select()
+                    // Usar intent para abrir la selección de ruta del sistema
+                    val routeIntent = Intent(android.provider.Settings.ACTION_CAST_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(routeIntent)
                     isProjecting = true
                     Log.i(TAG, "Proyección via MediaRouter: ${selectedRoute.name}")
                     return@withContext true
@@ -173,12 +181,14 @@ class ZSmartCastBridge(private val context: Context) {
         try {
             if (!isProjecting) return
 
-            // Desconectar via MediaRouter: seleccionar la ruta por defecto
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                mediaRouter?.unselect(MediaRouter.UNSELECT_REASON_STOPPED)
-            } else {
-                val defaultRoute = mediaRouter?.getDefaultRoute()
-                defaultRoute?.select()
+            // Desconectar via MediaRouter: abrir settings de Cast para desconectar
+            try {
+                val stopIntent = Intent(android.provider.Settings.ACTION_CAST_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(stopIntent)
+            } catch (e: Exception) {
+                Log.w(TAG, "No se pudo abrir settings de Cast", e)
             }
 
             isProjecting = false

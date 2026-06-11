@@ -529,5 +529,3 @@ enum class TaskType {
     SUCCESS,         // Green Neon — tarea completada
     INFO             // Cyber Silver — información
 }
-
-private val Typeface.Companion.MONOSPACE get() = Typeface.MONOSPACE
