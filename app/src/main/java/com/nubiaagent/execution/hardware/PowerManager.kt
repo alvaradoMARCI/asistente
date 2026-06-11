@@ -123,13 +123,13 @@ class PowerManager(private val context: Context) {
         private const val TEMP_WARN_THRESHOLD = 42f
 
         /** Temperatura de batería considerada peligrosa (°C). */
-        private const TEMP_CRITICAL_THRESHOLD = 45f
+        private const val TEMP_CRITICAL_THRESHOLD = 45f
 
         /** Temperatura máxima — se fuerza desactivación de bypass (°C). */
-        private const TEMP_EMERGENCY_THRESHOLD = 48f
+        private const val TEMP_EMERGENCY_THRESHOLD = 48f
 
         /** Temperatura normal — seguro para bypass (°C). */
-        private const TEMP_NORMAL_THRESHOLD = 38f
+        private const val TEMP_NORMAL_THRESHOLD = 38f
 
         // ──────────────────────── Intervalos de Monitoreo ────────────────────
 

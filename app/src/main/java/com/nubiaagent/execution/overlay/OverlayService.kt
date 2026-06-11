@@ -550,7 +550,7 @@ class OverlayService : Service() {
             AgentStatus.THINKING -> "🧠"
             AgentStatus.IDLE -> "●"
             AgentStatus.ERROR -> "✕"
-            AgentStatus.WAITING_CONFIRMATION → "❓"
+            AgentStatus.WAITING_CONFIRMATION -> "❓"
             AgentStatus.EXECUTING -> "⚡"
             AgentStatus.RECORDING -> "⏺"
         }

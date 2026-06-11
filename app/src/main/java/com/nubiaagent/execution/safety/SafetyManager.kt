@@ -538,7 +538,7 @@ interface AuditEntryDao {
 @Database(
     entities = [AuditEntry::class],
     version = 1,
-    exportSchema = true
+    exportSchema = false
 )
 abstract class AuditDatabase : RoomDatabase() {
     abstract fun auditEntryDao(): AuditEntryDao
