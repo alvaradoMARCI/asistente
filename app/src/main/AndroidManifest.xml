@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    NubiaAgent - Capa de Percepción
+    AndroidManifest.xml
+    
+    Manifiesto completo con todos los permisos y servicios requeridos
+    para la Capa de Percepción del asistente autónomo.
+    
+    DISPOSITIVO OBJETIVO: ZTE Nubia Neo 3 5G
+    PROCESADOR: Unisoc T8300 + NeoTurbo
+    RAM: 20 GB
+    
+    NOTA DE SEGURIDAD: Todos los permisos son necesarios para la
+    funcionalidad de percepción local. Ningún dato sale del dispositivo.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ========================================== -->
+    <!-- PERMISOS DE PERCEPCIÓN - CAPTURA DE INPUT  -->
+    <!-- ========================================== -->
+
+    <!-- Módulo Ear: Escucha de wake word y comandos de voz -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    
+    <!-- Módulo Vision: Captura de pantalla para fallback visual -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    
+    <!-- Módulo Events: Interceptación de notificaciones -->
+    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+        tools:ignore="ProtectedPermissions" />
+    
+    <!-- Módulo Vision: Servicio de Accesibilidad -->
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- ========================================== -->
+    <!-- PERMISOS DE HARDWARE - TELEMETRÍA          -->
+    <!-- ========================================== -->
+
+    <!-- Ubicación -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    
+    <!-- Actividad física -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    
+    <!-- Sensores corporales -->
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND" />
+
+    <!-- ========================================== -->
+    <!-- PERMISOS DE SISTEMA - FUNCIONAMIENTO       -->
+    <!-- ========================================== -->
+
+    <!-- Servicio en primer plano persistente -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    
+    <!-- Wake lock para procesamiento continuo -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- Inicio automático al encender -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    
+    <!-- Vibración para feedback háptico -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <!-- Almacenamiento para modelos y datos -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    
+    <!-- Internet (SOLO para descarga de modelos, no para datos del usuario) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+    <!-- Notificaciones (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- No suspender el servicio -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    
+    <!-- MediaProjection para screenshot fallback -->
+    <uses-permission android:name="android.permission.CAPTURE_VIDEO_OUTPUT"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- ========================================== -->
+    <!-- CARACTERÍSTICAS DE HARDWARE UTILIZADAS     -->
+    <!-- ========================================== -->
+    
+    <uses-feature android:name="android.hardware.microphone" android:required="true" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="true" />
+
+    <application
+        android:name=".NubiaAgentApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.NubiaAgent"
+        android:largeHeap="true"
+        android:usesCleartextTraffic="false"
+        tools:targetApi="34">
+
+        <!-- ========================================== -->
+        <!-- ACTIVIDAD PRINCIPAL                        -->
+        <!-- ========================================== -->
+        
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.NubiaAgent">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 1: EAR - WAKE WORD SERVICE          -->
+        <!-- ========================================== -->
+        <!--
+            ForegroundService permanente que escucha "Hey Nubia"
+            usando Vosk 100% offline. Usa RECORD_AUDIO y
+            FOREGROUND_SERVICE_MICROPHONE para captura continua.
+            El buffer circular optimiza el uso de CPU en el
+            Unisoc T8300.
+        -->
+        <service
+            android:name=".perception.ear.WakeWordService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="microphone"
+            android:stopWithTask="false">
+            <intent-filter>
+                <action android:name="com.nubiaagent.action.START_LISTENING" />
+                <action android:name="com.nubiaagent.action.STOP_LISTENING" />
+                <action android:name="com.nubiaagent.action.FORCE_COMMAND_MODE" />
+            </intent-filter>
+        </service>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 2: VISION - SCREEN OBSERVER         -->
+        <!-- ========================================== -->
+        <!--
+            AccessibilityService que captura el árbol de la UI
+            y lo filtra a ~40 elementos clave para el LLM.
+            Incluye fallback a screenshot para apps Flutter/WebViews.
+        -->
+        <service
+            android:name=".perception.vision.ScreenObserver"
+            android:enabled="true"
+            android:exported="false"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!-- ========================================== -->
+        <!-- MÓDULO 3: EVENTS - NOTIFICATION LISTENER   -->
+        <!-- ========================================== -->
+        <!--
+            NotificationListenerService que intercepta notificaciones
+            y las clasifica en categorías semánticas para que el
+            agente decida si interrumpir al usuario.
+        -->
+        <service
+            android:name=".perception.events.NotificationInterceptor"
+            android:enabled="true"
+            android:exported="false"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- ========================================== -->
+        <!-- BROADCAST RECEIVERS                        -->
+        <!-- ========================================== -->
+        
+        <!-- Receiver para transiciones de actividad física -->
+        <receiver
+            android:name=".perception.hardware.ActivityTransitionReceiver"
+            android:enabled="true"
+            android:exported="false" />
+        
+        <!-- Receiver para inicio automático al encender -->
+        <receiver
+            android:name=".core.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

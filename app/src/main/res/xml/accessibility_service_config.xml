@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Configuración del AccessibilityService para ScreenObserver.
+    
+    Esta configuración permite al servicio:
+    - Leer el árbol de accesibilidad completo de cualquier app
+    - Capturar eventos de tipo y ventana
+    - Recuperar nodos interactivos
+    - Reportar view IDs para identificación precisa
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAllMask"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagReportViewIds|flagRetrieveInteractiveNodes|flagIncludeNotImportantViews"
+    android:canRetrieveWindowContent="true"
+    android:canRequestTouchExplorationEvent="true"
+    android:description="@string/accessibility_service_description"
+    android:notificationTimeout="100"
+    android:packageNames=""
+    android:settingsActivity="com.nubiaagent.MainActivity" />
