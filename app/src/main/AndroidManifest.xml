@@ -187,6 +187,42 @@
         </service>
 
         <!-- ========================================== -->
+        <!-- CAPA COGNITIVA - MOTOR DE INFERENCIA       -->
+        <!-- ========================================== -->
+        <!--
+            ForegroundService que mantiene el modelo LLM cargado
+            en RAM. Usa WAKE_LOCK para sesiones de inferencia
+            prolongadas y largeHeap para los 20GB del Nubia.
+        -->
+        <service
+            android:name=".cognitive.engine.CognitiveEngine"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false">
+            <intent-filter>
+                <action android:name="com.nubiaagent.action.INITIALIZE_ENGINE" />
+                <action android:name="com.nubiaagent.action.SHUTDOWN_ENGINE" />
+                <action android:name="com.nubiaagent.action.INFER" />
+                <action android:name="com.nubiaagent.action.RELOAD_MODEL" />
+            </intent-filter>
+        </service>
+
+        <!-- Permisos adicionales para Capa Cognitiva -->
+        <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+        <!-- SMS para herramienta sms.send -->
+        <uses-permission android:name="android.permission.SEND_SMS" />
+        <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+        <!-- Calendario para herramienta calendar.read/write -->
+        <uses-permission android:name="android.permission.READ_CALENDAR" />
+        <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+
+        <!-- Llamadas para herramienta call.make -->
+        <uses-permission android:name="android.permission.CALL_PHONE" />
+
+        <!-- ========================================== -->
         <!-- BROADCAST RECEIVERS                        -->
         <!-- ========================================== -->
         

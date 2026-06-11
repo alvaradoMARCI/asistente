@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -12,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0.0-alpha"
+        versionName = "2.0.0-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -99,6 +100,19 @@ dependencies {
 
     // Work Manager para tareas en segundo plano
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // ==================== CAPA COGNITIVA ====================
+
+    // Room - Base de datos local para memoria
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+
+    // DataStore para preferencias
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
+    // ONNX Runtime - Para inferencia de modelos de embeddings
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.16.3")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
