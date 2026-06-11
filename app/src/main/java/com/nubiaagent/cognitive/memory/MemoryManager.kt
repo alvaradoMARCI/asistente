@@ -95,7 +95,7 @@ class MemoryManager private constructor(private val context: Context) {
                     NubiaDatabase::class.java,
                     DB_NAME
                 )
-                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .fallbackToDestructiveMigration()
                     .build()
 
                 // Inicializar Deep Archive
@@ -299,7 +299,11 @@ class MemoryManager private constructor(private val context: Context) {
                             "- [${fact.category}] ${fact.content}"
                         }
                         results.add("[HECHOS ENCONTRADOS]\n$factResults")
+                    } else {
+                        // No keyword facts found
                     }
+                } else {
+                    // Results already found in other layers
                 }
 
             } catch (e: Exception) {

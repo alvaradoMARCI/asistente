@@ -2,6 +2,7 @@ package com.nubiaagent.orchestration
 
 import android.content.Context
 import android.content.Intent
+import android.hardware.display.DisplayManager
 import android.media.MediaRouter
 import android.os.Build
 import android.util.Log
@@ -92,6 +93,13 @@ class ZSmartCastBridge(private val context: Context) {
                     override fun onRouteSelected(router: MediaRouter?, type: Int, info: MediaRouter.RouteInfo?) {
                         Log.i(TAG, "Ruta seleccionada: ${info?.name}")
                     }
+
+                    override fun onRouteUnselected(router: MediaRouter?, type: Int, info: MediaRouter.RouteInfo?) {
+                        Log.i(TAG, "Ruta deseleccionada: ${info?.name}")
+                        if (isProjecting) {
+                            isProjecting = false
+                        }
+                    }
                 }
             )
 
@@ -132,7 +140,7 @@ class ZSmartCastBridge(private val context: Context) {
                 }
 
                 // Fallback: usar MediaRouter nativo de Android
-                val selectedRoute = mediaRouter?.selectedRoute
+                val selectedRoute = mediaRouter?.getSelectedRoute(MediaRouter.ROUTE_TYPE_LIVE_VIDEO)
                 if (selectedRoute != null && selectedRoute.name != "Phone") {
                     selectedRoute.select()
                     isProjecting = true
@@ -165,8 +173,13 @@ class ZSmartCastBridge(private val context: Context) {
         try {
             if (!isProjecting) return
 
-            // Desconectar via MediaRouter
-            mediaRouter?.unselect(MediaRouter.UNSELECT_REASON_STOPPED)
+            // Desconectar via MediaRouter: seleccionar la ruta por defecto
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                mediaRouter?.unselect(MediaRouter.UNSELECT_REASON_STOPPED)
+            } else {
+                val defaultRoute = mediaRouter?.getDefaultRoute()
+                defaultRoute?.select()
+            }
 
             isProjecting = false
             Log.i(TAG, "Proyección detenida")
@@ -183,7 +196,7 @@ class ZSmartCastBridge(private val context: Context) {
         val displays = mutableListOf<DisplayInfo>()
 
         try {
-            val dm = context.getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
+            val dm = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
             val externalDisplays = dm.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
 
             for (display in externalDisplays) {
@@ -197,16 +210,20 @@ class ZSmartCastBridge(private val context: Context) {
             }
 
             // También verificar rutas del MediaRouter
-            val routes = mediaRouter?.routes ?: emptyList()
-            for (route in routes) {
-                if (route.name != "Phone" && route.isEnabled) {
-                    displays.add(DisplayInfo(
-                        id = -1,
-                        name = route.name.toString(),
-                        width = 0,
-                        height = 0,
-                        isAvailable = true
-                    ))
+            val router = mediaRouter
+            if (router != null) {
+                val routeCount = router.routeCount
+                for (i in 0 until routeCount) {
+                    val route = router.getRouteAt(i)
+                    if (route.name != "Phone" && route.isEnabled) {
+                        displays.add(DisplayInfo(
+                            id = -1,
+                            name = route.name.toString(),
+                            width = 0,
+                            height = 0,
+                            isAvailable = true
+                        ))
+                    }
                 }
             }
 

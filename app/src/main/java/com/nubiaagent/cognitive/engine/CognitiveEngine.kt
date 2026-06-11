@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
+import java.io.File
 
 /**
  * CognitiveEngine: Motor de Inferencia Local para NubiaAgent.
@@ -160,7 +161,7 @@ class CognitiveEngine : LifecycleService() {
         Log.i(TAG, "CognitiveEngine creado")
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Boolean {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
 
         when (intent?.action) {
@@ -244,8 +245,8 @@ class CognitiveEngine : LifecycleService() {
                 subscribeToPerception()
 
                 _engineState.value = EngineState.READY
-                updateNotification("Motor cognitivo listo - ${modelSpec.name}")
-                Log.i(TAG, "★ Motor cognitivo inicializado exitosamente con ${modelSpec.name}")
+                updateNotification("Motor cognitivo listo - ${modelSpec?.name}")
+                Log.i(TAG, "★ Motor cognitivo inicializado exitosamente con ${modelSpec?.name}")
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error fatal inicializando motor", e)
@@ -513,6 +514,60 @@ class CognitiveEngine : LifecycleService() {
                     }
                     else -> { /* Otros eventos no requieren acción directa */ }
                 }
+            }
+        }
+    }
+
+    /**
+     * Maneja la acción ACTION_INFER: ejecuta una inferencia basada en los extras del Intent.
+     * Extrae el prompt del intent y lanza la inferencia en una coroutine.
+     */
+    private fun handleInferIntent(intent: Intent) {
+        val prompt = intent.getStringExtra("prompt") ?: run {
+            Log.w(TAG, "ACTION_INFER sin prompt en intent extras")
+            return
+        }
+        lifecycleScope.launch {
+            try {
+                val result = infer(prompt)
+                Log.d(TAG, "Inferencia completada: ${result.take(100)}...")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error en inferencia desde intent", e)
+            }
+        }
+    }
+
+    /**
+     * Maneja la acción ACTION_RELOAD: recarga el modelo actual (o el especificado en el intent).
+     * Descarga el modelo actual y vuelve a cargarlo desde disco.
+     */
+    private fun reloadModel(intent: Intent) {
+        val modelId = intent.getStringExtra("model_id") ?: modelManager.selectBestModelForDevice()
+        if (modelId == null) {
+            Log.w(TAG, "ACTION_RELOAD: no se pudo determinar qué modelo recargar")
+            return
+        }
+        lifecycleScope.launch {
+            try {
+                unloadModel()
+                val spec = ModelManager.AVAILABLE_MODELS[modelId]
+                if (spec != null) {
+                    val modelFile = File(modelManager.getModelsDir(), spec.filename)
+                    if (modelFile.exists()) {
+                        loadModelNative(modelFile.absolutePath)
+                        updateNotification("Modelo recargado - ${spec.name}")
+                        Log.i(TAG, "Modelo recargado: ${spec.name}")
+                    } else {
+                        Log.e(TAG, "Archivo de modelo no encontrado para recarga: ${modelFile.absolutePath}")
+                        _engineState.value = EngineState.ERROR
+                    }
+                } else {
+                    Log.e(TAG, "ModelSpec no encontrado para modelId: $modelId")
+                    _engineState.value = EngineState.ERROR
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error recargando modelo", e)
+                _engineState.value = EngineState.ERROR
             }
         }
     }

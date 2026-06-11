@@ -145,9 +145,9 @@ class UILearning(
     data class UIHint(
         val appPackage: String,
         val action: String,
-        val elementHint: String,
-        val xpath: String,
-        val bounds: String,
+        var elementHint: String,
+        var xpath: String,
+        var bounds: String,
         var confidence: Float = CONFIDENCE_INITIAL,
         var successCount: Int = 0,
         var failCount: Int = 0,

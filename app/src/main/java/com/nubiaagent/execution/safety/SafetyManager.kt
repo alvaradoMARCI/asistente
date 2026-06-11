@@ -73,7 +73,7 @@ class SafetyManager(
         private const val MAX_ACTIONS_PER_MINUTE = 20
 
         /** Rolling window duration in milliseconds. */
-        private const val RATE_WINDOW_MS = TimeUnit.MINUTES.toMillis(1)
+        private val RATE_WINDOW_MS = TimeUnit.MINUTES.toMillis(1)
 
         // ──────────────────────── Forbidden Actions ──────────────────────────
         /**
@@ -107,7 +107,7 @@ class SafetyManager(
             AuditDatabase::class.java,
             "nubia_safety_audit"
         )
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .fallbackToDestructiveMigration()
             .build()
             .auditEntryDao()
     }

@@ -1,7 +1,7 @@
 package com.nubiaagent.execution.bridge
 
-import android.accessibilityservice.AccessibilityService.GestureDescription
-import android.accessibilityservice.AccessibilityService.GestureDescription.StrokeDescription
+import android.accessibilityservice.GestureDescription
+import android.accessibilityservice.GestureDescription.StrokeDescription
 import android.graphics.Path
 import android.graphics.PointF
 import android.os.Build

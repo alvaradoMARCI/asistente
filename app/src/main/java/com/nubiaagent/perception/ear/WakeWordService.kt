@@ -67,7 +67,7 @@ class WakeWordService : LifecycleService() {
 
         // Wake word detection
         private const val WAKE_WORD = "hey nubia"
-        private const val WAKE_PHRASES = arrayOf("hey nubia", "hey nova", "hey nube")  // Variaciones fonéticas
+        private val WAKE_PHRASES = arrayOf("hey nubia", "hey nova", "hey nube")  // Variaciones fonéticas
         private const val WAKE_CONFIDENCE_THRESHOLD = 0.65f
 
         // Command listening
@@ -151,7 +151,7 @@ class WakeWordService : LifecycleService() {
         createNotificationChannel()
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Boolean {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
 
         when (intent?.action) {

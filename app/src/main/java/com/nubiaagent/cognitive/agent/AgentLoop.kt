@@ -115,7 +115,7 @@ class AgentLoop(
     private val _iterationCount = MutableStateFlow(0)
     val iterationCount: StateFlow<Int> = _iterationCount.asStateFlow()
 
-    private var autonomyProfile: AutonomyProfile = AutonomyProfile.BALANCED
+    private var autonomyProfile: AutonomyProfile = AutonomyProfile.BALANCEADO
     private var conversationHistory = mutableListOf<Pair<String, String>>()
 
     enum class LoopState {

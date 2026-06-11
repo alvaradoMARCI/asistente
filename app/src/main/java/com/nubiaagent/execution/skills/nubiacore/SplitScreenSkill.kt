@@ -1,6 +1,7 @@
 package com.nubiaagent.execution.skills.nubiacore
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -698,7 +699,7 @@ class SplitScreenSkill(
      */
     private fun dispatchGestureToService(
         service: AccessibilityService,
-        gesture: android.accessibilityservice.AccessibilityService.GestureDescription
+        gesture: GestureDescription
     ): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             try {
@@ -706,12 +707,12 @@ class SplitScreenSkill(
                 var result = false
 
                 service.dispatchGesture(gesture, object : AccessibilityService.GestureResultCallback() {
-                    override fun onCompleted(gestureDescription: android.accessibilityservice.AccessibilityService.GestureDescription) {
+                    override fun onCompleted(gestureDescription: GestureDescription) {
                         result = true
                         latch.countDown()
                     }
 
-                    override fun onCancelled(gestureDescription: android.accessibilityservice.AccessibilityService.GestureDescription) {
+                    override fun onCancelled(gestureDescription: GestureDescription) {
                         result = false
                         latch.countDown()
                     }

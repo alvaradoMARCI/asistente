@@ -2,6 +2,7 @@ package com.nubiaagent.perception.hardware
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -104,7 +105,7 @@ class HardwareStateCollector(private val context: Context) {
 
     // Callbacks
     private var locationCallback: LocationCallback? = null
-    private var activityCallback: ActivityTransitionCallback? = null
+    private var activityPendingIntent: PendingIntent? = null
     private var stepCounterListener: SensorEventListener? = null
 
     // Batería
@@ -163,7 +164,7 @@ class HardwareStateCollector(private val context: Context) {
         }
 
         // Detener reconocimiento de actividad
-        activityCallback?.let {
+        activityPendingIntent?.let {
             activityRecognitionClient?.removeActivityTransitionUpdates(it)
         }
 
@@ -494,12 +495,12 @@ class HardwareStateCollector(private val context: Context) {
 
         val request = ActivityTransitionRequest(transitions)
 
-        activityCallback = ActivityTransitionCallback()
+        activityPendingIntent = createActivityPendingIntent()
 
         try {
             activityRecognitionClient?.requestActivityTransitionUpdates(
                 request,
-                activityCallback!!.getPendingIntent(context)
+                activityPendingIntent!!
             )
             Log.i(TAG, "Reconocimiento de actividad iniciado")
         } catch (e: SecurityException) {
@@ -508,37 +509,37 @@ class HardwareStateCollector(private val context: Context) {
     }
 
     /**
-     * Callback para transiciones de actividad.
+     * Crea el PendingIntent para las transiciones de actividad.
      */
-    private inner class ActivityTransitionCallback : ActivityTransitionResultHandler() {
-        fun getPendingIntent(context: Context): PendingIntent {
-            val intent = Intent(context, ActivityTransitionReceiver::class.java)
-            return PendingIntent.getBroadcast(
-                context, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
+    private fun createActivityPendingIntent(): PendingIntent {
+        val intent = Intent(context, ActivityTransitionReceiver::class.java)
+        return PendingIntent.getBroadcast(
+            context, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    /**
+     * Procesa los resultados de transiciones de actividad.
+     */
+    fun handleActivityTransitionResult(result: ActivityTransitionResult) {
+        val transition = result.transitionEvents.firstOrNull() ?: return
+        val activityType = transition.activityType
+
+        val userActivity = when (activityType) {
+            DetectedActivity.IN_VEHICLE -> UserActivity.DRIVING
+            DetectedActivity.ON_BICYCLE -> UserActivity.CYCLING
+            DetectedActivity.RUNNING -> UserActivity.RUNNING
+            DetectedActivity.WALKING -> UserActivity.WALKING
+            DetectedActivity.STILL -> UserActivity.STILL
+            else -> UserActivity.UNKNOWN
         }
 
-        override fun onActivityTransitionResult(result: ActivityTransitionResult) {
-            val transition = result.transitionEvents.firstOrNull() ?: return
-            val activityType = transition.activityType
-            val transitionType = transition.transitionType
+        _currentState.value = _currentState.value.copy(
+            currentActivity = userActivity
+        )
 
-            val userActivity = when (activityType) {
-                DetectedActivity.IN_VEHICLE -> UserActivity.DRIVING
-                DetectedActivity.ON_BICYCLE -> UserActivity.CYCLING
-                DetectedActivity.RUNNING -> UserActivity.RUNNING
-                DetectedActivity.WALKING -> UserActivity.WALKING
-                DetectedActivity.STILL -> UserActivity.STILL
-                else -> UserActivity.UNKNOWN
-            }
-
-            _currentState.value = _currentState.value.copy(
-                currentActivity = userActivity
-            )
-
-            Log.i(TAG, "Actividad: $userActivity (${if (transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER) "INICIO" else "FIN"})")
-        }
+        Log.i(TAG, "Actividad detectada: $userActivity")
     }
 
     // ==================== SENSORES DE MOVIMIENTO ====================
@@ -662,25 +663,4 @@ enum class ChargerType {
     UNKNOWN     // No determinado
 }
 
-/**
- * BroadcastReceiver para transiciones de actividad.
- * Recibe los intents del ActivityRecognition API.
- */
-class ActivityTransitionReceiver : android.content.BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        if (ActivityTransitionResult.hasResult(intent)) {
-            val result = ActivityTransitionResult.extractResult(intent)
-            result?.let {
-                // El callback se maneja en ActivityTransitionCallback
-                // Este receiver es necesario para que el PendingIntent funcione
-            }
-        }
-    }
-}
 
-/**
- * Wrapper para manejar los resultados de ActivityTransition.
- */
-abstract class ActivityTransitionResultHandler {
-    abstract fun onActivityTransitionResult(result: ActivityTransitionResult)
-}

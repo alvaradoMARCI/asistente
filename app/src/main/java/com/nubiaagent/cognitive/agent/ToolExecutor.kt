@@ -348,7 +348,7 @@ class ToolExecutor(private val context: Context) {
         val intent = Intent(Intent.ACTION_INSERT).apply {
             type = "vnd.android.cursor.item/event"
             putExtra(android.provider.CalendarContract.Events.TITLE, title)
-            putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, "$dateT$time")
+            putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, "${date}T${time}")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
@@ -390,7 +390,7 @@ class ToolExecutor(private val context: Context) {
             "brightness" -> Intent(Settings.ACTION_DISPLAY_SETTINGS)
             "volume" -> Intent(Settings.ACTION_SOUND_SETTINGS)
             "airplane" -> Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS)
-            "dnd" -> Intent(Settings.ACTION_ZEN_MODE_SETTINGS)
+            "dnd" -> Intent("android.settings.ZEN_MODE_SETTINGS")
             else -> Intent(Settings.ACTION_SETTINGS)
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

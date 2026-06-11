@@ -6,6 +6,11 @@ import android.content.Intent
 import android.util.Log
 import com.nubiaagent.core.PerceptionBus
 import com.nubiaagent.core.PerceptionEvent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * ActivityTransitionReceiver: Recibe transiciones de actividad física.
@@ -23,6 +28,8 @@ class ActivityTransitionReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "NubiaAgent/ActivityTransition"
     }
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == "com.nubiaagent.ACTION_ACTIVITY_TRANSITION") {
@@ -49,26 +56,29 @@ class ActivityTransitionReceiver : BroadcastReceiver() {
 
             Log.d(TAG, "Transición de actividad: $transitionName $activityName")
 
-            // Emitir evento al PerceptionBus
+            // Emitir evento al PerceptionBus (desde coroutine porque emit es suspend)
             try {
-                PerceptionBus.emit(
-                    PerceptionEvent.HardwareStateUpdate(
-                        batteryLevel = -1,
-                        isCharging = false,
-                        isBypassCharging = false,
-                        latitude = null,
-                        longitude = null,
-                        currentActivity = when (activityName) {
-                            "IN_VEHICLE" -> com.nubiaagent.core.UserActivity.DRIVING
-                            "ON_BICYCLE" -> com.nubiaagent.core.UserActivity.CYCLING
-                            "WALKING" -> com.nubiaagent.core.UserActivity.WALKING
-                            "RUNNING" -> com.nubiaagent.core.UserActivity.RUNNING
-                            "STILL" -> com.nubiaagent.core.UserActivity.STILL
-                            else -> com.nubiaagent.core.UserActivity.UNKNOWN
-                        },
-                        stepCount = 0
+                val userActivity = when (activityName) {
+                    "IN_VEHICLE" -> com.nubiaagent.core.UserActivity.DRIVING
+                    "ON_BICYCLE" -> com.nubiaagent.core.UserActivity.CYCLING
+                    "WALKING" -> com.nubiaagent.core.UserActivity.WALKING
+                    "RUNNING" -> com.nubiaagent.core.UserActivity.RUNNING
+                    "STILL" -> com.nubiaagent.core.UserActivity.STILL
+                    else -> com.nubiaagent.core.UserActivity.UNKNOWN
+                }
+                serviceScope.launch {
+                    PerceptionBus.emit(
+                        PerceptionEvent.HardwareStateUpdate(
+                            batteryLevel = -1,
+                            isCharging = false,
+                            isBypassCharging = false,
+                            latitude = null,
+                            longitude = null,
+                            currentActivity = userActivity,
+                            stepCount = 0
+                        )
                     )
-                )
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error emitiendo evento de actividad", e)
             }

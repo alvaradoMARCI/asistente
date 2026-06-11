@@ -356,19 +356,7 @@ class HardwareController(private val context: Context) {
         return try {
             val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                // API 28+: Usar TelephonyManager.endCall() si tenemos permiso
-                if (ActivityCompat.checkSelfPermission(
-                        context, Manifest.permission.ANSWER_PHONE_CALLS
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    telephonyManager.endCall()
-                    Log.i(TAG, "Llamada finalizada (API 28+)")
-                    return HardwareResult.Success(Unit, "Llamada finalizada")
-                }
-            }
-
-            // Fallback: Reflexión para dispositivos más antiguos
+            // TelephonyManager.endCall() is not a public SDK API; use reflection for all API levels
             val method = TelephonyManager::class.java.getMethod("endCall")
             val result = method.invoke(telephonyManager) as? Boolean ?: false
 
@@ -1178,7 +1166,8 @@ class HardwareController(private val context: Context) {
                 ) as WifiManager
 
                 @Suppress("DEPRECATION")
-                val success = wifiManager.isWifiEnabled = enabled
+                wifiManager.isWifiEnabled = enabled
+                val success = wifiManager.isWifiEnabled == enabled
 
                 if (success || wifiManager.isWifiEnabled == enabled) {
                     val estado = if (enabled) "activado" else "desactivado"

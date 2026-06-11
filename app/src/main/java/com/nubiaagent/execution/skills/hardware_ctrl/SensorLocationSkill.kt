@@ -156,9 +156,13 @@ class SensorLocationSkill(private val context: Context) {
                     Sensor.TYPE_PRESSURE -> mapOf(
                         "presion_hpa" to event.values[0]
                     )
-                    else -> event.values.mapIndexedNotNull { index, value ->
-                        if (index < 10) "valor_$index" to value else null
-                    }.toMap()
+                    else -> {
+                        val map = mutableMapOf<String, Float>()
+                        for (i in event.values.indices) {
+                            if (i < 10) map["valor_$i"] = event.values[i]
+                        }
+                        map.toMap()
+                    }
                 }
                 sensorValues.set(values)
                 sensorManager.unregisterListener(this)

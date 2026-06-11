@@ -824,7 +824,7 @@ class OverlayService : Service() {
         val container = ScrollView(this).apply {
             background = android.graphics.drawable.GradientDrawable().apply {
                 setColor(0xDD222222.toInt()) // Fondo oscuro semi-transparente
-                cornerRadius = cornerRadius
+                setCornerRadius(cornerRadius)
             }
             setPadding(panelPadding, panelPadding, panelPadding, panelPadding)
         }

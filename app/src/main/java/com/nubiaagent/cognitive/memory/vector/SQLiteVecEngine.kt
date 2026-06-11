@@ -249,7 +249,7 @@ class SQLiteVecEngine(private val context: Context) {
         withContext(Dispatchers.IO) {
             try {
                 val db = dbHelper.writableDatabase
-                db.delete("vec_embeddings", "fact_id = ?", arrayOf(factId))
+                db.delete("vec_embeddings", "fact_id = ?", arrayOf(factId.toString()))
 
                 vectorCache.remove(factId)
                 contentCache.remove(factId)

@@ -148,7 +148,6 @@ class ScreenObserver : AccessibilityService() {
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             flags = AccessibilityServiceInfo.DEFAULT or
                     AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
-                    AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_NODES or
                     AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
             notificationTimeout = 100
         }
@@ -504,7 +503,9 @@ class ScreenObserver : AccessibilityService() {
 
         return suspendCancellableCoroutine { continuation ->
             try {
+                val windowManager = getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
                 val metrics = DisplayMetrics()
+                @Suppress("DEPRECATION")
                 windowManager.defaultDisplay.getMetrics(metrics)
 
                 imageReader = ImageReader.newInstance(

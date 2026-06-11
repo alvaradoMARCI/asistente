@@ -27,7 +27,7 @@ class VibeCoder(private val context: Context) {
         private const val TAG = "VibeCoder"
         private const val SNIPPETS_DIR = "vibe_snippets"
         private const val FILE_EXTENSION = ".html"
-        private const val CHARSET = "UTF-8"
+        private const val CHARSET = "UTF-8" // Used for display/reference only; see Charsets.UTF_8 for API calls
 
         // Acción del Intent para abrir la WebView
         const val ACTION_SHOW_CANVAS = "com.nubiaagent.SHOW_CANVAS"
@@ -248,7 +248,7 @@ class VibeCoder(private val context: Context) {
                 return Result.failure(Exception("Fragmento no encontrado: $name"))
             }
 
-            val content = file.readText(CHARSET)
+            val content = file.readText(Charsets.UTF_8)
             Log.d(TAG, "Fragmento cargado: $name (${content.length} caracteres)")
             Result.success(content)
         } catch (e: IOException) {

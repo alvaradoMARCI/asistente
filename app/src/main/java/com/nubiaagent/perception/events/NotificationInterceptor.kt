@@ -2,6 +2,7 @@ package com.nubiaagent.perception.events
 
 import android.app.Notification
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -201,7 +202,11 @@ class NotificationInterceptor : NotificationListenerService() {
     private fun extractTitle(extras: Bundle?): String {
         if (extras == null) return ""
         return extras.getString(Notification.EXTRA_TITLE)?.toString()
-            ?: extras.getCharSequence(Notification.EXTRA_TITLE_TEXT)?.toString()
+            ?: if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                extras.getCharSequence(Notification.EXTRA_TITLE_TEXT)?.toString()
+            } else {
+                null
+            }
             ?: extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
             ?: ""
     }

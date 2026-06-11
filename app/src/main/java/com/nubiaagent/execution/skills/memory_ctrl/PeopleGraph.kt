@@ -1,8 +1,10 @@
 package com.nubiaagent.execution.skills.memory_ctrl
 
 import com.nubiaagent.cognitive.memory.MemoryManager
+import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
@@ -536,7 +538,16 @@ class PeopleGraph(private val memoryManager: MemoryManager) {
      */
     fun removePerson(name: String): Result<Boolean> {
         val normalizedName = normalizeName(name)
-        val removed = memoryManager.removeFact(CATEGORY, "person_$normalizedName")
+        val removed = runBlocking {
+            val facts = memoryManager.getFactDao().getByCategory(CATEGORY)
+            val personFact = facts.find { it.source == "person_$normalizedName" }
+            if (personFact != null) {
+                memoryManager.getFactDao().deleteById(personFact.id)
+                true
+            } else {
+                false
+            }
+        }
 
         if (removed) {
             // Eliminar del índice
@@ -614,7 +625,7 @@ class PeopleGraph(private val memoryManager: MemoryManager) {
             }
 
             if (nameFacts.isNotEmpty()) {
-                facts[name] = nameFacts.distinct()
+                facts[name] = nameFacts.distinct().toMutableList()
             }
         }
 
@@ -695,8 +706,11 @@ class PeopleGraph(private val memoryManager: MemoryManager) {
     }
 
     private fun loadPersonNode(name: String): PersonNode? {
-        val key = "person_${normalizeName(name)}"
-        val json = memoryManager.getFact(CATEGORY, key) ?: return null
+        val normalizedName = normalizeName(name)
+        val json = runBlocking {
+            val facts = memoryManager.getFactDao().getByCategory(CATEGORY)
+            facts.find { it.source == "person_$normalizedName" }?.content
+        } ?: return null
 
         return try {
             parsePersonNode(json)
@@ -707,9 +721,24 @@ class PeopleGraph(private val memoryManager: MemoryManager) {
     }
 
     private fun savePersonNode(node: PersonNode) {
-        val key = "person_${normalizeName(node.name)}"
+        val normalizedName = normalizeName(node.name)
         val json = serializePersonNode(node)
-        memoryManager.storeFact(CATEGORY, key, json)
+        runBlocking {
+            val facts = memoryManager.getFactDao().getByCategory(CATEGORY)
+            val existing = facts.find { it.source == "person_$normalizedName" }
+            if (existing != null) {
+                memoryManager.getFactDao().update(
+                    existing.copy(content = json)
+                )
+            } else {
+                memoryManager.storeFact(
+                    content = json,
+                    category = CATEGORY,
+                    importance = 0.5f,
+                    source = "person_$normalizedName"
+                )
+            }
+        }
     }
 
     private fun serializePersonNode(node: PersonNode): String {
@@ -761,10 +790,13 @@ class PeopleGraph(private val memoryManager: MemoryManager) {
     }
 
     private fun getPeopleIndex(): List<String> {
-        val indexJson = memoryManager.getFact(CATEGORY, KEY_PEOPLE_INDEX) ?: return emptyList()
+        val indexJson = runBlocking {
+            val facts = memoryManager.getFactDao().getByCategory(CATEGORY)
+            facts.find { it.source == KEY_PEOPLE_INDEX }?.content
+        } ?: return emptyList()
         return try {
             val array = JSONArray(indexJson)
-            (0 until array.length()).map { array.getString(it) }
+            (0 until array.length()).map { i -> array.getString(i) }
         } catch (e: Exception) {
             emptyList()
         }
@@ -773,7 +805,22 @@ class PeopleGraph(private val memoryManager: MemoryManager) {
     private fun savePeopleIndex(index: List<String>) {
         val array = JSONArray()
         index.forEach { array.put(it) }
-        memoryManager.storeFact(CATEGORY, KEY_PEOPLE_INDEX, array.toString())
+        runBlocking {
+            val facts = memoryManager.getFactDao().getByCategory(CATEGORY)
+            val existing = facts.find { it.source == KEY_PEOPLE_INDEX }
+            if (existing != null) {
+                memoryManager.getFactDao().update(
+                    existing.copy(content = array.toString())
+                )
+            } else {
+                memoryManager.storeFact(
+                    content = array.toString(),
+                    category = CATEGORY,
+                    importance = 0.5f,
+                    source = KEY_PEOPLE_INDEX
+                )
+            }
+        }
     }
 
     private fun addToPeopleIndex(name: String) {

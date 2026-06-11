@@ -1,7 +1,7 @@
 package com.nubiaagent.execution.safety
 
-import android.app.Activity
 import android.util.Log
+import androidx.fragment.app.FragmentActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
@@ -116,7 +116,7 @@ class BiometricGate {
      * back to device credential (PIN/password/pattern) verification.
      *
      * @param scope       The [CoroutineScope] on which to launch the async work.
-     * @param context     The hosting [Activity] used to display the BiometricPrompt.
+     * @param context     The hosting [FragmentActivity] used to display the BiometricPrompt.
      *                    Must be a foreground activity or the prompt will fail.
      * @param title       The title displayed in the biometric prompt dialog.
      * @param description The descriptive text explaining what action is being confirmed.
@@ -126,7 +126,7 @@ class BiometricGate {
      */
     fun requestConfirmation(
         scope: CoroutineScope,
-        context: Activity,
+        context: FragmentActivity,
         title: String,
         description: String
     ): Deferred<Boolean> = scope.async {
@@ -151,13 +151,13 @@ class BiometricGate {
      * 4. If the timeout fires before authentication, cancel the prompt and
      *    resume with `false`.
      *
-     * @param context     The hosting Activity.
+     * @param context     The hosting FragmentActivity.
      * @param title       Prompt title.
      * @param description Prompt description.
      * @return `true` if authenticated, `false` otherwise.
      */
     private suspend fun performBiometricConfirmation(
-        context: Activity,
+        context: FragmentActivity,
         title: String,
         description: String
     ): Boolean = suspendCancellableCoroutine { continuation ->

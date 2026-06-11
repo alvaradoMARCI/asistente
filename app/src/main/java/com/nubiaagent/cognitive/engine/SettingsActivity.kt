@@ -80,7 +80,7 @@ class SettingsActivity : Activity() {
                 val apiKey = prefs.getString("cloud_api_key", null)
                 prefs.edit().putBoolean("cloud_enabled", isChecked).apply()
                 if (isChecked && apiKey.isNullOrEmpty()) {
-                    isChecked = false
+                    this@apply.isChecked = false
                     showToast("Configura tu API Key primero")
                 }
             }

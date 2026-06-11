@@ -844,7 +844,7 @@ class PowerManager(private val context: Context) {
         return try {
             val intent = Intent(ZTE_BYPASS_ACTION).apply {
                 putExtra(ZTE_BYPASS_EXTRA, true)
-                addFlags(Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND)
+                addFlags(0x01000000) // Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND (hidden API)
             }
             context.sendBroadcast(intent)
             Log.d(TAG, "Broadcast ZTE de activación enviado: $ZTE_BYPASS_ACTION")
@@ -864,7 +864,7 @@ class PowerManager(private val context: Context) {
         return try {
             val intent = Intent(ZTE_BYPASS_ACTION).apply {
                 putExtra(ZTE_BYPASS_EXTRA, false)
-                addFlags(Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND)
+                addFlags(0x01000000) // Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND (hidden API)
             }
             context.sendBroadcast(intent)
             Log.d(TAG, "Broadcast ZTE de desactivación enviado: $ZTE_BYPASS_ACTION")

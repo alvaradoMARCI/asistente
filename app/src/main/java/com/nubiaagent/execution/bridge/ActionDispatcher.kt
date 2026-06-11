@@ -2,7 +2,7 @@ package com.nubiaagent.execution.bridge
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityService.GestureResultCallback
-import android.accessibilityservice.AccessibilityService.GestureDescription
+import android.accessibilityservice.GestureDescription
 import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
