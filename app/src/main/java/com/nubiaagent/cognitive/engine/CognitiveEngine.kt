@@ -124,6 +124,16 @@ class CognitiveEngine : LifecycleService() {
     private var memoryManager: MemoryManager? = null
     private var inferenceConfig: InferenceConfig = InferenceConfig.BALANCED
 
+    // Motor de inferencia cloud (fallback cuando no hay modelo local)
+    private var cloudEngine: CloudInferenceEngine? = null
+    private var inferenceMode = InferenceMode.LOCAL_ONLY
+
+    enum class InferenceMode {
+        LOCAL_ONLY,     // Solo llama.cpp (privacidad total, necesita NDK)
+        CLOUD_FALLBACK, // Local primero, cloud si no hay modelo (recomendado)
+        CLOUD_ONLY      // Solo API cloud (no necesita modelo local)
+    }
+
     // Modelo nativo (llama.cpp handle)
     private var modelHandle: Long = 0
     private var isModelLoaded = false
@@ -135,6 +145,17 @@ class CognitiveEngine : LifecycleService() {
         super.onCreate()
         instance = this
         modelManager = ModelManager(this)
+        cloudEngine = CloudInferenceEngine(this)
+
+        // Detectar modo de inferencia según configuración
+        if (CloudInferenceEngine.isConfigured(this)) {
+            inferenceMode = InferenceMode.CLOUD_FALLBACK
+            Log.i(TAG, "Motor cloud configurado - Modo: Cloud Fallback")
+        } else {
+            inferenceMode = InferenceMode.LOCAL_ONLY
+            Log.i(TAG, "Sin motor cloud - Modo: Local Only")
+        }
+
         createNotificationChannel()
         Log.i(TAG, "CognitiveEngine creado")
     }
@@ -181,17 +202,37 @@ class CognitiveEngine : LifecycleService() {
                     ?: modelManager.selectBestModelForDevice()
 
                 if (modelId == null) {
-                    Log.e(TAG, "No hay modelos disponibles para cargar")
-                    _engineState.value = EngineState.ERROR
-                    updateNotification("Error: Sin modelo - Descarga uno primero")
-                    return@launch
+                    // No hay modelo local, verificar si cloud está disponible
+                    if (CloudInferenceEngine.isConfigured(this@CognitiveEngine)) {
+                        inferenceMode = InferenceMode.CLOUD_ONLY
+                        isModelLoaded = false
+                        _engineState.value = EngineState.READY
+                        updateNotification("Motor cloud activo - ${CloudInferenceEngine.getModel(this@CognitiveEngine)}")
+                        Log.i(TAG, "★ Motor cognitivo en modo CLOUD (sin modelo local)")
+                        subscribeToPerception()
+                        return@launch
+                    } else {
+                        Log.e(TAG, "No hay modelos ni API cloud configurada")
+                        _engineState.value = EngineState.ERROR
+                        updateNotification("Configura API Key en Ajustes para usar el asistente")
+                        return@launch
+                    }
                 }
 
                 val modelSpec = ModelManager.AVAILABLE_MODELS[modelId]
                 val modelFile = File(modelManager.getModelsDir(), modelSpec!!.filename)
 
                 if (!modelFile.exists()) {
-                    Log.e(TAG, "Archivo de modelo no encontrado: ${modelFile.absolutePath}")
+                    Log.w(TAG, "Archivo de modelo no encontrado: ${modelFile.absolutePath}")
+                    // Fallback a cloud si está disponible
+                    if (CloudInferenceEngine.isConfigured(this@CognitiveEngine)) {
+                        inferenceMode = InferenceMode.CLOUD_ONLY
+                        isModelLoaded = false
+                        _engineState.value = EngineState.READY
+                        updateNotification("Motor cloud activo (modelo local no encontrado)")
+                        subscribeToPerception()
+                        return@launch
+                    }
                     _engineState.value = EngineState.ERROR
                     return@launch
                 }
@@ -297,9 +338,15 @@ class CognitiveEngine : LifecycleService() {
         config: InferenceConfig? = null,
         streamCallback: ((String) -> Unit)? = null
     ): String {
+        // Si no hay modelo local, usar cloud directamente
         if (!isModelLoaded || modelHandle == 0L) {
-            Log.e(TAG, "Intento de inferencia sin modelo cargado")
-            return "[ERROR: Modelo no cargado]"
+            if (inferenceMode == InferenceMode.CLOUD_FALLBACK ||
+                inferenceMode == InferenceMode.CLOUD_ONLY) {
+                Log.i(TAG, "Sin modelo local → usando API cloud")
+                return inferCloud(prompt, config)
+            }
+            Log.e(TAG, "Intento de inferencia sin modelo ni cloud")
+            return "[ERROR: Modelo no cargado y API cloud no configurada. Ve a Ajustes para configurar tu API Key.]"
         }
 
         val activeConfig = config ?: inferenceConfig
@@ -340,9 +387,23 @@ class CognitiveEngine : LifecycleService() {
             //     streamCallback?.invoke(token)
             // }
 
-            // PLACEHOLDER: Simulación de inferencia
-            // En producción, esto devuelve la respuesta real del modelo
-            val result = simulateInference(prompt)
+            // Intentar inferencia nativa (llama.cpp)
+            val nativeAvailable = LlamaNative.ensureLoaded()
+            var result: String
+
+            if (nativeAvailable && modelHandle != 0L && modelHandle != 1L) {
+                // Inferencia REAL con llama.cpp
+                result = LlamaNative.llamaCompletion(modelHandle, prompt, params.toString())
+                Log.i(TAG, "Inferencia nativa completada")
+            } else if (inferenceMode == InferenceMode.CLOUD_FALLBACK ||
+                       inferenceMode == InferenceMode.CLOUD_ONLY) {
+                // Fallback a API cloud
+                result = inferCloud(prompt, config)
+                return result
+            } else {
+                // Simulación (sin modelo ni cloud)
+                result = simulateInference(prompt)
+            }
 
             // Calcular tokens/segundo
             val elapsed = (System.currentTimeMillis() - startTime).toFloat() / 1000f
@@ -466,6 +527,44 @@ class CognitiveEngine : LifecycleService() {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             Log.i(TAG, "Motor cognitivo apagado")
+        }
+    }
+
+    /**
+     * Inferencia via API cloud (OpenAI, Anthropic, OpenRouter, o custom).
+     * Se usa cuando no hay modelo local disponible.
+     * El prompt completo (SOUL + profile + user message) se envía al proveedor.
+     */
+    private suspend fun inferCloud(
+        prompt: String,
+        config: InferenceConfig? = null
+    ): String {
+        val engine = cloudEngine ?: return "[ERROR: Motor cloud no inicializado]"
+
+        val activeConfig = config ?: inferenceConfig
+        _engineState.value = EngineState.INFERRING
+        val startTime = System.currentTimeMillis()
+
+        try {
+            val result = engine.infer(
+                prompt = prompt,
+                maxTokens = activeConfig.maxTokens,
+                temperature = activeConfig.temperature
+            )
+
+            val elapsed = (System.currentTimeMillis() - startTime).toFloat() / 1000f
+            val estimatedTokens = result.split(" ").size.toFloat() * 1.3f
+            _tokensPerSecond.value = if (elapsed > 0) estimatedTokens / elapsed else 0f
+
+            Log.i(TAG, "Inferencia cloud completada: ${result.take(80)}... " +
+                    "(${_tokensPerSecond.value} tok/s, ${elapsed}s)")
+
+            _engineState.value = EngineState.READY
+            return result
+        } catch (e: Exception) {
+            Log.e(TAG, "Error en inferencia cloud", e)
+            _engineState.value = EngineState.READY
+            return "[ERROR cloud: ${e.message}]"
         }
     }
 

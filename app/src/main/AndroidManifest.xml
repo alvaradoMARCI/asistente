@@ -166,6 +166,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Pantalla de configuración del motor cloud -->
+        <activity
+            android:name=".cognitive.engine.SettingsActivity"
+            android:exported="false"
+            android:label="Configurar Motor"
+            android:theme="@style/Theme.NubiaAgent" />
+
         <!-- ========================================== -->
         <!-- MÓDULO 1: EAR - WAKE WORD SERVICE          -->
         <!-- ========================================== -->

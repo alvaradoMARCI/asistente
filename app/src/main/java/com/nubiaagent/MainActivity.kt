@@ -8,6 +8,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,6 +19,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.nubiaagent.perception.ear.WakeWordService
 import com.nubiaagent.perception.vision.ScreenObserver
+import com.nubiaagent.cognitive.engine.CloudInferenceEngine
+import com.nubiaagent.cognitive.engine.SettingsActivity
 
 /**
  * MainActivity: Punto de entrada del usuario a NubiaAgent.
@@ -47,13 +52,36 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Layout minimalista temporal
-        statusText = TextView(this).apply {
-            text = "NubiaAgent - Capa de Percepción\n\nInicializando..."
-            textSize = 16f
+        // Layout Mecha Futurista programático
+        val rootLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(0xFF1A1A2E.toInt())
             setPadding(32, 32, 32, 32)
         }
-        setContentView(statusText)
+
+        statusText = TextView(this).apply {
+            text = "NubiaAgent\n\nInicializando..."
+            textSize = 15f
+            setTextColor(0xFFC0C0C0.toInt())
+            setPadding(0, 0, 0, 24)
+        }
+        rootLayout.addView(statusText)
+
+        // Botón Configurar Motor Cloud
+        val settingsButton = Button(this).apply {
+            text = "CONFIGURAR MOTOR DE IA"
+            setTextColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(0xFFE94560.toInt())
+            setPadding(24, 20, 24, 20)
+            textSize = 14f
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
+            }
+        }
+        rootLayout.addView(settingsButton)
+
+        val scrollView = ScrollView(this).apply { addView(rootLayout) }
+        setContentView(scrollView)
 
         checkAndRequestPermissions()
     }
@@ -143,14 +171,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateStatus() {
+        val cloudStatus = if (CloudInferenceEngine.isConfigured(this)) {
+            val provider = CloudInferenceEngine.getProvider(this)
+            val model = CloudInferenceEngine.getModel(this)
+            "Configurado ($provider / $model)"
+        } else {
+            "No configurado"
+        }
+
         val status = buildString {
-            appendLine("NubiaAgent - Capa de Percepción")
+            appendLine("NubiaAgent - Capa de Percepcion")
             appendLine()
-            appendLine("📋 Estado de Módulos:")
-            appendLine("  👂 Ear (Wake Word): ${if (WakeWordService.isRunning()) "✅ Activo" else "⬜ Inactivo"}")
-            appendLine("  👁 Vision (Screen): ${if (ScreenObserver.isRunning()) "✅ Activo" else "⬜ Inactivo"}")
-            appendLine("  📨 Events (Notif.): ${if (isNotificationListenerEnabled()) "✅ Activo" else "⬜ Inactivo"}")
-            appendLine("  🔋 Hardware (Telem.): ✅ Activo")
+            appendLine("Estado de Modulos:")
+            appendLine("  Ear (Wake Word): ${if (WakeWordService.isRunning()) "Activo" else "Inactivo"}")
+            appendLine("  Vision (Screen): ${if (ScreenObserver.isRunning()) "Activo" else "Inactivo"}")
+            appendLine("  Events (Notif.): ${if (isNotificationListenerEnabled()) "Activo" else "Inactivo"}")
+            appendLine("  Hardware (Telem.): Activo")
+            appendLine()
+            appendLine("Motor de Inferencia:")
+            appendLine("  Cloud API: $cloudStatus")
             appendLine()
             appendLine("Dispositivo: ${Build.MODEL}")
             appendLine("Android: ${Build.VERSION.RELEASE}")
