@@ -95,7 +95,7 @@ class MemoryManager private constructor(private val context: Context) {
                     NubiaDatabase::class.java,
                     DB_NAME
                 )
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
 
                 // Inicializar Deep Archive

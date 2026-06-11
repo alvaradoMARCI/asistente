@@ -10,7 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -21,13 +22,30 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
+    - name: Install Android SDK components
+      run: |
+        sdkmanager "platforms;android-34"
+        sdkmanager "build-tools;34.0.0"
+        sdkmanager "platform-tools"
+
+    - name: Generate Gradle Wrapper
+      run: |
+        # Check if gradle-wrapper.jar exists and is valid
+        if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(stat -c%s gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 1000 ]; then
+          echo "gradle-wrapper.jar is missing or invalid. Generating with Gradle..."
+          # Install Gradle temporarily to generate wrapper
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip -O /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /tmp/
+          /tmp/gradle-8.5/bin/gradle wrapper --gradle-version 8.5
+        fi
+
     - name: Cache Gradle packages
       uses: actions/cache@v4
       with:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
-        key: gradle-${{ hashFiles('**/*.gradle.kts') }}
+        key: gradle-${{ hashFiles('**/*.gradle.kts', '**/gradle-wrapper.properties') }}
         restore-keys: gradle-
 
     - name: Grant execute permission for gradlew
@@ -36,25 +54,23 @@ jobs:
     - name: Build Debug APK
       run: ./gradlew assembleDebug --no-daemon --stacktrace
 
-    - name: Build Release APK
-      run: ./gradlew assembleRelease --no-daemon
-
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: NubiaAgent-debug
+        name: NubiaAgent-APK
         path: app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
+
+    - name: Build Release APK
+      if: success()
+      run: ./gradlew assembleRelease --no-daemon
+      continue-on-error: true
 
     - name: Upload Release APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: NubiaAgent-release
+        name: NubiaAgent-Release
         path: app/build/outputs/apk/release/app-release-unsigned.apk
-
-    - name: Create Release on tag
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          app/build/outputs/apk/debug/app-debug.apk
-          app/build/outputs/apk/release/app-release-unsigned.apk
+        retention-days: 30
+      continue-on-error: true

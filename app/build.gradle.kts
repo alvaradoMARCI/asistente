@@ -95,9 +95,6 @@ dependencies {
     // Location Services
     implementation("com.google.android.gms:play-services-location:21.0.1")
 
-    // Activity Recognition
-    implementation("com.google.android.gms:play-services-activity-recognition:16.0.0")
-
     // Work Manager para tareas en segundo plano
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 

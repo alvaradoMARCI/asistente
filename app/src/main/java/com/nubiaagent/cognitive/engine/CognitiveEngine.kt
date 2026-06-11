@@ -676,6 +676,22 @@ class CognitiveEngine : LifecycleService() {
      * Esto permite que la app compile y funcione en modo simulación
      * mientras se compila llama.cpp para Android (NDK + CMake).
      */
+    /**
+     * LlamaNative: Bridge para llama.cpp via JNI.
+     *
+     * COMPILATION NOTE: The external fun declarations require libllama.so
+     * at runtime. Since we don't have the .so yet, we use a STUB approach:
+     * - ensureLoaded() tries to load the library and returns false if missing
+     * - The infer() method checks ensureLoaded() and falls back to cloud/simulation
+     * - The external fun declarations are kept for when libllama.so is available
+     * - They will throw UnsatisfiedLinkError at RUNTIME (not compile time)
+     *   which is caught by the try/catch in ensureLoaded()
+     *
+     * To add llama.cpp support later:
+     * 1. Compile llama.cpp for arm64-v8a using Android NDK
+     * 2. Place libllama.so in app/src/main/jniLibs/arm64-v8a/
+     * 3. Add CMakeLists.txt if building from source
+     */
     object LlamaNative {
         @Volatile
         private var libraryLoaded = false
@@ -693,34 +709,64 @@ class CognitiveEngine : LifecycleService() {
             } catch (e: UnsatisfiedLinkError) {
                 loadFailed = true
                 Log.w("NubiaAgent/Cognition",
-                    "libllama.so no disponible - modo simulación activo", e)
+                    "libllama.so no disponible - modo cloud/simulacion activo", e)
+                false
+            } catch (e: Exception) {
+                loadFailed = true
+                Log.w("NubiaAgent/Cognition",
+                    "Error cargando libllama.so", e)
                 false
             }
         }
 
+        fun llamaInitModel(modelPath: String, nThreads: Int, nCtx: Int, nGpuLayers: Int): Long {
+            if (!libraryLoaded) return 0L
+            return try {
+                llamaInitModelNative(modelPath, nThreads, nCtx, nGpuLayers)
+            } catch (e: UnsatisfiedLinkError) {
+                Log.e("NubiaAgent/Cognition", "JNI llamaInitModel not available", e)
+                0L
+            }
+        }
+
+        fun llamaFreeModel(handle: Long) {
+            if (!libraryLoaded) return
+            try { llamaFreeModelNative(handle) }
+            catch (_: UnsatisfiedLinkError) { }
+        }
+
+        fun llamaCompletion(handle: Long, prompt: String, params: String): String {
+            if (!libraryLoaded) return ""
+            return try { llamaCompletionNative(handle, prompt, params) }
+            catch (e: UnsatisfiedLinkError) { "" }
+        }
+
+        fun llamaCompletionStream(handle: Long, prompt: String, params: String, callback: (String) -> Unit) {
+            if (!libraryLoaded) return
+            try { llamaCompletionStreamNative(handle, prompt, params, callback) }
+            catch (_: UnsatisfiedLinkError) { }
+        }
+
+        fun llamaTokenCount(handle: Long, text: String): Int {
+            if (!libraryLoaded) return text.split(" ").size
+            return try { llamaTokenCountNative(handle, text) }
+            catch (_: UnsatisfiedLinkError) { text.split(" ").size }
+        }
+
+        // Native JNI declarations - these require libllama.so at runtime
         @JvmStatic
-        external fun llamaInitModel(
-            modelPath: String,
-            nThreads: Int,
-            nCtx: Int,
-            nGpuLayers: Int
-        ): Long
+        private external fun llamaInitModelNative(modelPath: String, nThreads: Int, nCtx: Int, nGpuLayers: Int): Long
 
         @JvmStatic
-        external fun llamaFreeModel(handle: Long)
+        private external fun llamaFreeModelNative(handle: Long)
 
         @JvmStatic
-        external fun llamaCompletion(handle: Long, prompt: String, params: String): String
+        private external fun llamaCompletionNative(handle: Long, prompt: String, params: String): String
 
         @JvmStatic
-        external fun llamaCompletionStream(
-            handle: Long,
-            prompt: String,
-            params: String,
-            callback: (String) -> Unit
-        )
+        private external fun llamaCompletionStreamNative(handle: Long, prompt: String, params: String, callback: (String) -> Unit)
 
         @JvmStatic
-        external fun llamaTokenCount(handle: Long, text: String): Int
+        private external fun llamaTokenCountNative(handle: Long, text: String): Int
     }
 }

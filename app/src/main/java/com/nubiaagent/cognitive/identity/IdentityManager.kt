@@ -58,6 +58,34 @@ class IdentityManager(private val context: Context) {
 
         // Plantilla comprimida para contextos pequeños
         private const val COMPRESSED_SOUL = """Eres NubiaAgent, asistente autónomo local. Ciclo: Pensar→Actuar→Observar. Perfil: {{AUTONOMY}}. Reglas: 1)Privacidad absoluta 2)Confirmar acciones destructivas 3)Consultar memoria antes de responder 4)Ser conciso. Herramientas: {{TOOLS}}."""
+
+        // Living Profile por defecto (primera ejecución)
+        private const val DEFAULT_LIVING_PROFILE = """
+# Perfil del Usuario
+
+## Información Básica
+- Nombre: (por determinar)
+- Idioma preferido: Español
+- Zona horaria: (por determinar)
+
+## Metas y Objetivos
+- (El asistente aprenderá las metas del usuario con el tiempo)
+
+## Patrones Observados
+- (El Curation Agent registrará patrones aquí)
+
+## Preferencias de Comunicación
+- Tono: Directo y conciso
+- Formato: Texto, no listas largas
+- Horarios activos: (por determinar)
+
+## Contactos Frecuentes
+- (Se registrarán automáticamente los contactos más mencionados)
+
+## Notas
+- Este perfil se actualiza automáticamente después de conversaciones importantes.
+- El Curation Agent extrae hechos nuevos y los integra aquí.
+"""
     }
 
     private var soulContent: String = ""
@@ -242,32 +270,4 @@ class IdentityManager(private val context: Context) {
         }
     }
 
-    companion object {
-        private const val DEFAULT_LIVING_PROFILE = """
-# Perfil del Usuario
-
-## Información Básica
-- Nombre: (por determinar)
-- Idioma preferido: Español
-- Zona horaria: (por determinar)
-
-## Metas y Objetivos
-- (El asistente aprenderá las metas del usuario con el tiempo)
-
-## Patrones Observados
-- (El Curation Agent registrará patrones aquí)
-
-## Preferencias de Comunicación
-- Tono: Directo y conciso
-- Formato: Texto, no listas largas
-- Horarios activos: (por determinar)
-
-## Contactos Frecuentes
-- (Se registrarán automáticamente los contactos más mencionados)
-
-## Notas
-- Este perfil se actualiza automáticamente después de conversaciones importantes.
-- El Curation Agent extrae hechos nuevos y los integra aquí.
-"""
-    }
 }

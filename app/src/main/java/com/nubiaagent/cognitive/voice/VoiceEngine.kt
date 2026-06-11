@@ -560,8 +560,9 @@ class VoiceEngine(
 
     private fun isNetworkAvailable(): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
-        val network = cm.activeNetworkInfo
-        return network?.isConnectedOrConnecting == true
+        val network = cm.activeNetwork ?: return false
+        val capabilities = cm.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     fun destroy() {

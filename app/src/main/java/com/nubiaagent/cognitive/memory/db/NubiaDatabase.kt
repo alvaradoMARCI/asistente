@@ -3,6 +3,23 @@ package com.nubiaagent.cognitive.memory.db
 import androidx.room.*
 
 /**
+ * Type converters for Room to handle ByteArray (embeddings) storage.
+ */
+class Converters {
+    @TypeConverter
+    fun fromByteArray(data: ByteArray?): String? {
+        if (data == null) return null
+        return android.util.Base64.encodeToString(data, android.util.Base64.NO_WRAP)
+    }
+
+    @TypeConverter
+    fun toByteArray(data: String?): ByteArray? {
+        if (data == null) return null
+        return android.util.Base64.decode(data, android.util.Base64.NO_WRAP)
+    }
+}
+
+/**
  * Entidad: Interacción del usuario con el agente.
  * Almacena las últimas 20 interacciones para contexto inmediato.
  * Capa 2: Rolling Context.
@@ -172,6 +189,7 @@ interface PatternDao {
     version = 1,
     exportSchema = true
 )
+@TypeConverters(Converters::class)
 abstract class NubiaDatabase : RoomDatabase() {
     abstract fun interactionDao(): InteractionDao
     abstract fun factDao(): FactDao
