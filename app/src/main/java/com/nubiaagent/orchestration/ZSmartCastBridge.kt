@@ -78,6 +78,7 @@ class ZSmartCastBridge(private val context: Context) {
             // Registrar callback para detectar displays
             mediaRouter?.addCallback(
                 MediaRouter.ROUTE_TYPE_LIVE_VIDEO,
+                @Suppress("DEPRECATION")
                 object : MediaRouter.Callback() {
                     override fun onRouteAdded(router: MediaRouter?, info: MediaRouter.RouteInfo?) {
                         Log.i(TAG, "Display externo detectado: ${info?.name}")
@@ -105,12 +106,14 @@ class ZSmartCastBridge(private val context: Context) {
                         Log.d(TAG, "Ruta cambiada: ${info?.name}")
                     }
 
-                    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+                    override fun onRouteVolumeChanged(router: MediaRouter?, info: MediaRouter.RouteInfo?) {
+                        Log.d(TAG, "Volumen cambiado en ruta: ${info?.name}")
+                    }
+
                     override fun onRouteGrouped(router: MediaRouter?, info: MediaRouter.RouteInfo?, group: MediaRouter.RouteGroup?, reason: Int) {
                         Log.d(TAG, "Ruta agrupada: ${info?.name}, razón: $reason")
                     }
 
-                    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
                     override fun onRouteUngrouped(router: MediaRouter?, info: MediaRouter.RouteInfo?, group: MediaRouter.RouteGroup?) {
                         Log.d(TAG, "Ruta desagrupada: ${info?.name}")
                     }
