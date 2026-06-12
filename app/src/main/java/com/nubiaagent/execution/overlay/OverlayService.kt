@@ -554,6 +554,7 @@ class OverlayService : Service() {
             AgentStatus.IDLE -> "●"
             AgentStatus.ERROR -> "✕"
             AgentStatus.WAITING_CONFIRMATION -> "❓"
+            AgentStatus.SPEAKING -> "🔊"
             AgentStatus.EXECUTING -> "⚡"
             AgentStatus.RECORDING -> "⏺"
         }
