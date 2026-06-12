@@ -173,6 +173,26 @@
             android:theme="@style/Theme.NubiaAgent" />
 
         <!-- ========================================== -->
+        <!-- MÓDULO 1: EAR - DESCARGA DE MODELOS VOSK   -->
+        <!-- ========================================== -->
+        <!--
+            ForegroundService que descarga modelos Vosk desde
+            alphacephei.com. Se ejecuta en primer plano para
+            que Android no mate la descarga (1.4 GB total).
+        -->
+        <service
+            android:name=".perception.ear.VoskModelDownloader"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false">
+            <intent-filter>
+                <action android:name="com.nubiaagent.action.START_VOSK_DOWNLOAD" />
+                <action android:name="com.nubiaagent.action.CANCEL_VOSK_DOWNLOAD" />
+            </intent-filter>
+        </service>
+
+        <!-- ========================================== -->
         <!-- MÓDULO 1: EAR - WAKE WORD SERVICE          -->
         <!-- ========================================== -->
         <!--

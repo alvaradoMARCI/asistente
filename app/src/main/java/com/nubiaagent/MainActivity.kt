@@ -21,6 +21,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import android.app.ProgressDialog
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
+import android.widget.ProgressBar
+import com.nubiaagent.perception.ear.VoskModelDownloader
 import com.nubiaagent.perception.ear.WakeWordService
 import com.nubiaagent.perception.vision.ScreenObserver
 import com.nubiaagent.perception.events.NotificationInterceptor
@@ -59,6 +64,41 @@ class MainActivity : AppCompatActivity() {
     private var notificationButton: Button? = null
     private var overlayButton: Button? = null
     private var nubiaWarningText: TextView? = null
+
+    // UI de descarga de modelos Vosk
+    private var downloadProgressLayout: LinearLayout? = null
+    private var downloadProgressBar: ProgressBar? = null
+    private var downloadStatusText: TextView? = null
+    private var downloadCancelButton: Button? = null
+
+    // BroadcastReceiver para progreso de descarga de modelos
+    private val downloadReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val phase = intent?.getStringExtra(VoskModelDownloader.EXTRA_PHASE) ?: return
+            val progress = intent.getIntExtra(VoskModelDownloader.EXTRA_PROGRESS, 0)
+            val message = intent.getStringExtra(VoskModelDownloader.EXTRA_MESSAGE) ?: ""
+
+            when (phase) {
+                "complete" -> {
+                    downloadProgressBar?.progress = 100
+                    downloadStatusText?.text = "Modelos instalados. Iniciando servicios..."
+                    downloadStatusText?.setTextColor(COLOR_GREEN)
+                    // Los servicios se reinician automáticamente vía intent
+                }
+                "error" -> {
+                    downloadProgressBar?.progress = 0
+                    downloadStatusText?.text = "Error: $message"
+                    downloadStatusText?.setTextColor(COLOR_RED)
+                    downloadCancelButton?.text = "REINTENTAR"
+                    downloadCancelButton?.setOnClickListener { invocarDownloadManager() }
+                }
+                else -> {
+                    downloadProgressBar?.progress = progress
+                    downloadStatusText?.text = message
+                }
+            }
+        }
+    }
 
     // Colores Mecha Futurista
     private val COLOR_BG = 0xFF1A1A2E.toInt()
@@ -270,6 +310,20 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateStatus()
+
+        // Si se regresa desde la descarga de modelos completada, reintentar servicios
+        if (intent?.getBooleanExtra("restart_services", false) == true) {
+            intent?.removeExtra("restart_services")
+            Log.i(TAG, "Reinicio de servicios después de descarga de modelos")
+            startPerceptionServices()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            unregisterReceiver(downloadReceiver)
+        } catch (_: Exception) { }
     }
 
     // ==================== ABRIR CONFIGURACIONES ESPECIALES ====================
@@ -621,11 +675,19 @@ class MainActivity : AppCompatActivity() {
 
         val allSpecial = isAccessibilityOn && isNotificationOn && isOverlayOn
 
+        // Verificar estado de modelos Vosk
+        val smallModelOk = VoskModelDownloader.modeloDisponible(this, "vosk-model-small-es-0.42")
+        val fullModelOk = VoskModelDownloader.modeloDisponible(this, "vosk-model-es-0.42")
+
         val status = buildString {
             appendLine("  Ear (Wake Word):    ${if (WakeWordService.isRunning()) "✓ Activo" else "○ Inactivo"}")
             appendLine("  Vision (Pantalla):  ${if (ScreenObserver.isRunning()) "✓ Activo" else if (isAccessibilityOn) "○ Listo" else "✗ Sin permiso"}")
             appendLine("  Events (Notif.):    ${if (isNotificationOn) "✓ Activo" else "✗ Sin permiso"}")
             appendLine("  Hardware (Telem.):  ✓ Activo")
+            appendLine()
+            appendLine("Modelos de Voz (Vosk):")
+            appendLine("  Wake word (50MB):   ${if (smallModelOk) "✓ Instalado" else "✗ Falta"}")
+            appendLine("  Comandos (1.3GB):   ${if (fullModelOk) "✓ Instalado" else "✗ Falta"}")
             appendLine()
             appendLine("Motor de Inferencia:")
             appendLine("  $cloudStatus")
@@ -664,6 +726,9 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // Ocultar UI de descarga si estaba visible
+        downloadProgressLayout?.visibility = View.GONE
+
         // Iniciar servicio de escucha (WakeWordService)
         if (!WakeWordService.isRunning()) {
             WakeWordService.start(this)
@@ -675,60 +740,160 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Verifica si el directorio del modelo completo de Vosk existe.
-     * El modelo grande (vosk-model-es-0.42, ~1.3GB) es requerido para
-     * la transcripción de comandos. Sin él, WakeWordService se iniciaría
-     * pero fallaría al transcribir.
+     * Verifica si AMBOS modelos Vosk existen y están completos.
+     * - Modelo small (vosk-model-small-es-0.42, ~50MB): wake word detection
+     * - Modelo full (vosk-model-es-0.42, ~1.3GB): transcripción de comandos
      *
-     * @return true si el directorio del modelo existe, false si no
+     * Ambos son necesarios para que WakeWordService funcione correctamente.
+     *
+     * @return true si ambos modelos existen con archivos esenciales, false si no
      */
     private fun verificarModelosVosk(): Boolean {
-        val modelsDir = File(filesDir, "models")
-        val fullModelDir = File(modelsDir, "vosk-model-es-0.42")
-
-        if (!fullModelDir.exists()) {
-            Log.w(TAG, "Modelo Vosk completo NO encontrado: ${fullModelDir.absolutePath}")
-            return false
-        }
-
-        // Verificar que tenga al menos los archivos esenciales
-        val amFile = File(fullModelDir, "am/final.mdl")
-        val confFile = File(fullModelDir, "conf/model.conf")
-        val hasEssentialFiles = amFile.exists() || confFile.exists()
-
-        if (!hasEssentialFiles) {
-            Log.w(TAG, "Directorio del modelo Vosk existe pero parece incompleto: ${fullModelDir.absolutePath}")
-            return false
-        }
-
-        Log.i(TAG, "Modelo Vosk completo verificado: ${fullModelDir.absolutePath}")
-        return true
+        // Usar la verificación centralizada de VoskModelDownloader
+        return VoskModelDownloader.modelosDisponibles(this)
     }
 
     /**
-     * Stub del gestor de descarga de modelos Vosk.
-     * Cuando el modelo de 1.3GB no está disponible en el dispositivo,
-     * este método se invoca para prevenir un crash en WakeWordService.
+     * Gestor de descarga de modelos Vosk.
+     * Cuando los modelos no están disponibles en el dispositivo,
+     * muestra UI de descarga con progreso y lanza VoskModelDownloader
+     * como ForegroundService para descargar ambos modelos desde internet.
      *
-     * TODO: Implementar descarga real con DownloadManager o ForegroundService
-     *       que descargue vosk-model-es-0.42 desde un mirror/hosting.
+     * Flujo:
+     * 1. Muestra diálogo explicativo con tamaño de descarga
+     * 2. Si el usuario acepta, muestra UI de progreso en la actividad
+     * 3. Inicia VoskModelDownloader (ForegroundService con notificación)
+     * 4. El servicio descarga small model (50MB) + full model (1.3GB)
+     * 5. Al completar, reinicia los servicios de percepción automáticamente
      */
     private fun invocarDownloadManager() {
         Log.w(TAG, "invocarDownloadManager() llamado — modelos Vosk faltantes")
 
-        // Mostrar aviso al usuario
-        Toast.makeText(
-            this,
-            "Se requiere descargar el modelo de voz (1.3 GB). " +
-                    "Funcionalidad de descarga en desarrollo.",
-            Toast.LENGTH_LONG
-        ).show()
+        // Si la descarga ya está en curso, no hacer nada
+        if (VoskModelDownloader.isRunning) {
+            Toast.makeText(this, "La descarga ya está en progreso...", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        // TODO: Implementar descarga con DownloadManager:
-        // 1. Crear DownloadManager.Request con URL del modelo
-        // 2. Descargar a filesDir/models/vosk-model-es-0.42.zip
-        // 3. Descomprimir en filesDir/models/vosk-model-es-0.42/
-        // 4. Al completar, re-intentar startPerceptionServices()
+        // Mostrar diálogo explicativo antes de descargar
+        AlertDialog.Builder(this)
+            .setTitle("Descargar Modelos de Voz")
+            .setMessage(
+                "Dayana necesita descargar los modelos de reconocimiento de voz " +
+                "para funcionar sin conexión.\n\n" +
+                "Se descargarán 2 modelos:\n" +
+                "\u2022 Modelo de wake word: ~50 MB\n" +
+                "\u2022 Modelo de comandos: ~1.3 GB\n\n" +
+                "Total aproximado: 1.4 GB\n" +
+                "Conecta tu WiFi para evitar consumo de datos móviles.\n\n" +
+                "La descarga puede tardar varios minutos según tu conexión. " +
+                "Puedes salir de la app y la descarga continuará en segundo plano."
+            )
+            .setPositiveButton("DESCARGAR") { _, _ ->
+                iniciarDescargaModelos()
+            }
+            .setNegativeButton("DESPUÉS") { dialog, _ ->
+                dialog.dismiss()
+                Toast.makeText(
+                    this,
+                    "Sin modelos de voz, Dayana no puede escucharte. " +
+                    "Vuelve y toca REFRESCAR cuando estés listo.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    /**
+     * Inicia la descarga de modelos Vosk con UI de progreso.
+     */
+    private fun iniciarDescargaModelos() {
+        // Registrar receiver para progreso
+        try {
+            unregisterReceiver(downloadReceiver)
+        } catch (_: Exception) { }
+        val filter = IntentFilter(VoskModelDownloader.BROADCAST_PROGRESS)
+        registerReceiver(downloadReceiver, filter)
+
+        // Mostrar UI de progreso si no existe
+        if (downloadProgressLayout == null) {
+            crearUIdeDescarga()
+        }
+        downloadProgressLayout?.visibility = View.VISIBLE
+        downloadProgressBar?.progress = 0
+        downloadStatusText?.text = "Iniciando descarga..."
+        downloadStatusText?.setTextColor(COLOR_CYAN)
+        downloadCancelButton?.text = "CANCELAR"
+        downloadCancelButton?.setOnClickListener {
+            VoskModelDownloader.stop(this)
+            downloadProgressLayout?.visibility = View.GONE
+            Toast.makeText(this, "Descarga cancelada", Toast.LENGTH_SHORT).show()
+        }
+
+        // Lanzar servicio de descarga
+        VoskModelDownloader.start(this)
+    }
+
+    /**
+     * Crea la UI de progreso de descarga de modelos.
+     * Se agrega dinámicamente al layout principal.
+     */
+    private fun crearUIdeDescarga() {
+        val scrollView = (window.decorView as? android.view.ViewGroup)
+            ?.findViewById<ScrollView>(android.R.id.content)
+            ?.getChildAt(0) as? ScrollView
+        val rootLayout = scrollView?.getChildAt(0) as? LinearLayout ?: return
+
+        downloadProgressLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(16, 16, 16, 16)
+            setBackgroundColor(COLOR_SURFACE)
+            visibility = View.GONE
+        }
+
+        val titleText = TextView(this).apply {
+            text = "DESCARGA DE MODELOS DE VOZ"
+            setTextColor(COLOR_CYAN)
+            textSize = 14f
+            setPadding(0, 0, 0, 8)
+        }
+        downloadProgressLayout!!.addView(titleText)
+
+        downloadProgressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100
+            progress = 0
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                48
+            )
+        }
+        downloadProgressLayout!!.addView(downloadProgressBar)
+
+        downloadStatusText = TextView(this).apply {
+            text = "Preparando..."
+            setTextColor(COLOR_TEXT)
+            textSize = 12f
+            setPadding(0, 8, 0, 8)
+        }
+        downloadProgressLayout!!.addView(downloadStatusText)
+
+        downloadCancelButton = Button(this).apply {
+            text = "CANCELAR"
+            setTextColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(COLOR_RED)
+            setPadding(24, 12, 24, 12)
+            textSize = 12f
+        }
+        downloadProgressLayout!!.addView(downloadCancelButton)
+
+        // Insertar antes de la sección de estado
+        val statusIndex = rootLayout.indexOfChild(statusText?.parent as? View ?: statusText)
+        if (statusIndex >= 0) {
+            rootLayout.addView(downloadProgressLayout, statusIndex)
+        } else {
+            rootLayout.addView(downloadProgressLayout)
+        }
     }
 
     // ==================== VERIFICACIONES ====================
