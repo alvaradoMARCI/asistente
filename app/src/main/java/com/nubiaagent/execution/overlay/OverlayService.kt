@@ -1094,6 +1094,10 @@ class OverlayService : Service() {
                     is PerceptionEvent.AgentResponse -> {
                         updateStatus(AgentStatus.SPEAKING, "Respondiendo: ${event.text.take(40)}...")
                     }
+
+                    is PerceptionEvent.AgentThought -> {
+                        updateStatus(AgentStatus.THINKING, event.logs.take(50))
+                    }
                 }
             }
         }
