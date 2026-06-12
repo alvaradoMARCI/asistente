@@ -175,6 +175,9 @@ class AgentLoop(
 
                 // ============ FASE 1: PENSAR ============
                 _loopState.value = LoopState.THINKING
+                PerceptionBus.tryEmit(PerceptionEvent.AgentThought(
+                    logs = "PENSAR [iteración $iteration]: Iniciando razonamiento sobre: $taskDescription"
+                ))
                 val thinkingResult = think(loopContext, event, iteration)
 
                 if (thinkingResult.isDirectResponse) {
@@ -204,6 +207,9 @@ class AgentLoop(
 
                 Log.i(TAG, "Tool call: ${toolCall.toolName}(${toolCall.parameters})")
                 onToolCall?.invoke(toolCall)
+                PerceptionBus.tryEmit(PerceptionEvent.AgentThought(
+                    logs = "ACTUAR [iteración $iteration]: Ejecutando herramienta ${toolCall.toolName}(${toolCall.parameters.take(60)})"
+                ))
 
                 // Verificar permisos según autonomía
                 if (!canExecuteAutonomously(toolCall)) {
@@ -230,6 +236,9 @@ class AgentLoop(
                 loopContext.observations.add(observation)
 
                 Log.d(TAG, "Observación: ${observation.take(100)}...")
+                PerceptionBus.tryEmit(PerceptionEvent.AgentThought(
+                    logs = "OBSERVAR [iteración $iteration]: ${observation.take(120)}"
+                ))
 
                 // Verificar si la tarea está completada
                 if (isTaskCompleted(executionResult, loopContext)) {
@@ -466,6 +475,9 @@ class AgentLoop(
 
             is PerceptionEvent.AgentResponse ->
                 "Respuesta del agente: \"${event.text.take(100)}\""
+
+            is PerceptionEvent.AgentThought ->
+                "Pensamiento del agente: \"${event.logs.take(100)}\""
         }
     }
 

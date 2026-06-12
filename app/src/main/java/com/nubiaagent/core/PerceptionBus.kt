@@ -82,6 +82,16 @@ sealed class PerceptionEvent {
         val text: String,
         val isSuccessful: Boolean
     ) : PerceptionEvent()
+
+    /**
+     * Trazabilidad del razonamiento del agente.
+     * Se emite en puntos clave del AgentLoop (PENSAR, ACTUAR, OBSERVAR)
+     * para que los componentes UI puedan mostrar el proceso de pensamiento.
+     */
+    data class AgentThought(
+        override val timestamp: Long = System.currentTimeMillis(),
+        val logs: String
+    ) : PerceptionEvent()
 }
 
 /**

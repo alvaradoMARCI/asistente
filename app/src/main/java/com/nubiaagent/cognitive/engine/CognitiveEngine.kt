@@ -13,6 +13,7 @@ import com.nubiaagent.cognitive.identity.IdentityManager
 import com.nubiaagent.cognitive.memory.MemoryManager
 import com.nubiaagent.core.PerceptionBus
 import com.nubiaagent.core.PerceptionEvent
+import com.nubiaagent.orchestration.VoiceCommandOrchestrator
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -158,6 +159,16 @@ class CognitiveEngine : LifecycleService() {
         }
 
         createNotificationChannel()
+
+        // Inicializar el orquestador de comandos de voz
+        // Esto conecta PerceptionBus → AgentLoop, cerrando el pipeline de voz
+        try {
+            VoiceCommandOrchestrator.getInstance(this).initialize(this)
+            Log.i(TAG, "VoiceCommandOrchestrator inicializado desde CognitiveEngine")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error inicializando VoiceCommandOrchestrator", e)
+        }
+
         Log.i(TAG, "CognitiveEngine creado")
     }
 

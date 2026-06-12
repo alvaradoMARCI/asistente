@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
@@ -24,7 +25,9 @@ import com.nubiaagent.perception.ear.WakeWordService
 import com.nubiaagent.perception.vision.ScreenObserver
 import com.nubiaagent.perception.events.NotificationInterceptor
 import com.nubiaagent.cognitive.engine.CloudInferenceEngine
+import com.nubiaagent.cognitive.engine.CognitiveEngine
 import com.nubiaagent.cognitive.engine.SettingsActivity
+import java.io.File
 
 /**
  * MainActivity: Punto de entrada del usuario a Dayana.
@@ -43,6 +46,10 @@ import com.nubiaagent.cognitive.engine.SettingsActivity
  * - Se intentan múltiples rutas de configuración para maximizar compatibilidad
  */
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "Dayana/Main"
+    }
 
     private var statusText: TextView? = null
     private var accessibilityStatus: TextView? = null
@@ -650,9 +657,78 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startPerceptionServices() {
+        // Verificar que los modelos Vosk existen antes de iniciar la escucha
+        if (!verificarModelosVosk()) {
+            Log.e(TAG, "Modelos Vosk no encontrados — no se pueden iniciar los servicios de voz")
+            invocarDownloadManager()
+            return
+        }
+
+        // Iniciar servicio de escucha (WakeWordService)
         if (!WakeWordService.isRunning()) {
             WakeWordService.start(this)
         }
+
+        // Iniciar motor cognitivo en primer plano (CognitiveEngine)
+        // Esto inicializa el orquestador que conecta PerceptionBus → AgentLoop
+        CognitiveEngine.start(this)
+    }
+
+    /**
+     * Verifica si el directorio del modelo completo de Vosk existe.
+     * El modelo grande (vosk-model-es-0.42, ~1.3GB) es requerido para
+     * la transcripción de comandos. Sin él, WakeWordService se iniciaría
+     * pero fallaría al transcribir.
+     *
+     * @return true si el directorio del modelo existe, false si no
+     */
+    private fun verificarModelosVosk(): Boolean {
+        val modelsDir = File(filesDir, "models")
+        val fullModelDir = File(modelsDir, "vosk-model-es-0.42")
+
+        if (!fullModelDir.exists()) {
+            Log.w(TAG, "Modelo Vosk completo NO encontrado: ${fullModelDir.absolutePath}")
+            return false
+        }
+
+        // Verificar que tenga al menos los archivos esenciales
+        val amFile = File(fullModelDir, "am/final.mdl")
+        val confFile = File(fullModelDir, "conf/model.conf")
+        val hasEssentialFiles = amFile.exists() || confFile.exists()
+
+        if (!hasEssentialFiles) {
+            Log.w(TAG, "Directorio del modelo Vosk existe pero parece incompleto: ${fullModelDir.absolutePath}")
+            return false
+        }
+
+        Log.i(TAG, "Modelo Vosk completo verificado: ${fullModelDir.absolutePath}")
+        return true
+    }
+
+    /**
+     * Stub del gestor de descarga de modelos Vosk.
+     * Cuando el modelo de 1.3GB no está disponible en el dispositivo,
+     * este método se invoca para prevenir un crash en WakeWordService.
+     *
+     * TODO: Implementar descarga real con DownloadManager o ForegroundService
+     *       que descargue vosk-model-es-0.42 desde un mirror/hosting.
+     */
+    private fun invocarDownloadManager() {
+        Log.w(TAG, "invocarDownloadManager() llamado — modelos Vosk faltantes")
+
+        // Mostrar aviso al usuario
+        Toast.makeText(
+            this,
+            "Se requiere descargar el modelo de voz (1.3 GB). " +
+                    "Funcionalidad de descarga en desarrollo.",
+            Toast.LENGTH_LONG
+        ).show()
+
+        // TODO: Implementar descarga con DownloadManager:
+        // 1. Crear DownloadManager.Request con URL del modelo
+        // 2. Descargar a filesDir/models/vosk-model-es-0.42.zip
+        // 3. Descomprimir en filesDir/models/vosk-model-es-0.42/
+        // 4. Al completar, re-intentar startPerceptionServices()
     }
 
     // ==================== VERIFICACIONES ====================
