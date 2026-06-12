@@ -83,28 +83,32 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: dayana-v4
-          name: "Dayana v4 - Asistente con Fallback Multi-API"
+          tag_name: dayana-v4.2-voice
+          name: "Dayana v4.2 - Voz Funcional + Fallback Multi-API"
           body: |
-            ## Dayana v4 - Asistente Inteligente
+            ## Dayana v4.2 - Asistente con Voz Funcional
 
-            ### Novedades
-            - Sistema de fallback automatico: Gemini → Groq → OpenAI
+            ### Novedades en v4.2 - Sistema de Voz
+            - **Android TTS nativo**: Voz offline 100% funcional sin internet
+            - **6 personas con voz única**: HESTIA, METIS, ARGUS, ATHENA, SELENE, IRIS
+            - **Parámetros por persona**: pitch, velocidad, voz OpenAI, voz ElevenLabs
+            - **Auto-speak**: Dayana habla automáticamente al responder
+            - **3 modos de voz**: OFFLINE (Android TTS), CLOUD (OpenAI/ElevenLabs), AUTO
+            - **MediaPlayer para cloud TTS**: Reproducción MP3 correcta
+            - **Arquitectura Piper-ready**: Preparado para Piper ONNX futuro
+
+            ### Sistema de Fallback Multi-API
+            - Gemini → Groq → OpenAI (automático)
             - 3 API keys preconfiguradas y encriptadas (AES-256-GCM)
-            - Nombre del asistente: Dayana (principal), Marcia, Nubia
             - Wake words: "Hey Dayana", "Hey Marcia", "Hey Nubia"
-            - Soporte para Gemini 2.0 Flash (GRATIS, 1M contexto)
-            - Soporte para Groq Llama 3.3 (GRATIS, 800 tok/s)
-            - Soporte para OpenAI GPT-4o-mini (de pago)
 
-            ### Proveedores de API
-            | Proveedor | Modelo | Precio | Velocidad |
-            |-----------|--------|--------|-----------|
-            | Gemini | 2.0 Flash | GRATIS | 15 RPM |
-            | Groq | Llama 3.3 70B | GRATIS | 30 RPM |
-            | OpenAI | GPT-4o-mini | Pago | Sin limite |
-
-            Si un proveedor falla, automaticamente prueba el siguiente.
+            ### Proveedores de Voz
+            | Proveedor | Tipo | Requiere Internet | Calidad |
+            |-----------|------|-------------------|---------|
+            | Android TTS | Offline | No | Media-Alta |
+            | OpenAI TTS | Cloud | Si | Alta |
+            | ElevenLabs | Cloud | Si | Muy Alta |
+            | Piper ONNX | Offline | No | Media (futuro) |
           draft: false
           prerelease: false
           files: |
