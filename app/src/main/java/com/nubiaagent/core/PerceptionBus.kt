@@ -72,6 +72,16 @@ sealed class PerceptionEvent {
         val currentActivity: UserActivity,
         val stepCount: Long
     ) : PerceptionEvent()
+
+    /**
+     * Respuesta generada por el agente (no es un comando del usuario).
+     * Se emite después de que el AgentLoop procesa un VoiceCommand.
+     */
+    data class AgentResponse(
+        override val timestamp: Long = System.currentTimeMillis(),
+        val text: String,
+        val isSuccessful: Boolean
+    ) : PerceptionEvent()
 }
 
 /**

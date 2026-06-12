@@ -235,7 +235,11 @@ FORMATO DE RESPUESTA:
 - Ofrece alternativas cuando el usuario parece indeciso
 - Termina con una nota de cuidado cuando la situación lo merece
 
-ESTILO: Cálido, empático, detallista, protector."""
+ESTILO: Cálido, empático, detallista, protector.""",
+        ttsPitch = 0.95f,
+        ttsSpeed = 0.95f,
+        openaiVoice = "nova",
+        elevenlabsVoiceId = "ThT5KcBeYPX3keUQqHPh"
     ),
 
     /**
@@ -275,7 +279,11 @@ FORMATO DE RESPUESTA:
 - Bullet points para opciones múltiples
 - Sin preámbulos ni despedidas
 
-ESTILO: Preciso, estratégico, sin fricción, orientado a acción."""
+ESTILO: Preciso, estratégico, sin fricción, orientado a acción.""",
+        ttsPitch = 1.05f,
+        ttsSpeed = 1.10f,
+        openaiVoice = "alloy",
+        elevenlabsVoiceId = "21m00Tcm4TlvDq8ikWAM"
     ),
 
     /**
@@ -322,7 +330,11 @@ ESPECIALIDADES:
 - Protección de datos personales
 - Alertas de seguridad en tiempo real
 
-ESTILO: Vigilante, firme, protectora, informada."""
+ESTILO: Vigilante, firme, protectora, informada.""",
+        ttsPitch = 0.90f,
+        ttsSpeed = 0.95f,
+        openaiVoice = "shimmer",
+        elevenlabsVoiceId = "AZnzlk1XvdvUeBnXmlld"
     ),
 
     /**
@@ -363,7 +375,11 @@ FORMATO DE RESPUESTA:
 - Implicaciones y consecuencias de la información
 - Referencias a conversaciones previas relevantes
 
-ESTILO: Erudita, pedagógica, completa, matizada."""
+ESTILO: Erudita, pedagógica, completa, matizada.""",
+        ttsPitch = 1.00f,
+        ttsSpeed = 0.90f,
+        openaiVoice = "fable",
+        elevenlabsVoiceId = "EXAVITQu4vr4xnSDxMaL"
     ),
 
     /**
@@ -404,7 +420,11 @@ COMPORTAMIENTO NOCTURNO:
 - Sugieres dormir si detectas fatiga en los mensajes
 - Preparas el briefing para la mañana siguiente
 
-ESTILO: Sereno, contemplativo, protector del descanso."""
+ESTILO: Sereno, contemplativo, protector del descanso.""",
+        ttsPitch = 0.92f,
+        ttsSpeed = 0.85f,
+        openaiVoice = "echo",
+        elevenlabsVoiceId = "ErXwobaYiN019PkySvjV"
     ),
 
     /**
@@ -445,7 +465,11 @@ HABILIDADES DE COMUNICACIÓN:
 - Resumen de conversaciones largas
 - Sugerencia de respuestas inteligentes
 
-ESTILO: Creativa, expresiva, adaptativa, comunicativa."""
+ESTILO: Creativa, expresiva, adaptativa, comunicativa.""",
+        ttsPitch = 1.10f,
+        ttsSpeed = 1.05f,
+        openaiVoice = "shimmer",
+        elevenlabsVoiceId = "MF3mGyEYCl7XYWbV9V6O"
     );
 
     companion object {

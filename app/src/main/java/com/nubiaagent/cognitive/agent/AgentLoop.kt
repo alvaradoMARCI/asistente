@@ -463,6 +463,9 @@ class AgentLoop(
                 "Estado del hardware: Batería ${event.batteryLevel}% " +
                         "${if (event.isCharging) "(cargando" + if (event.isBypassCharging) " con Bypass" else "" + ")" else ""}, " +
                         "Actividad: ${event.currentActivity.name}, Pasos: ${event.stepCount}"
+
+            is PerceptionEvent.AgentResponse ->
+                "Respuesta del agente: \"${event.text.take(100)}\""
         }
     }
 
