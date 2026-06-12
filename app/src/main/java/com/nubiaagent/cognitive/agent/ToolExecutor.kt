@@ -6,6 +6,8 @@ import android.net.Uri
 import android.provider.Settings
 import android.util.Log
 import com.nubiaagent.cognitive.memory.MemoryManager
+import com.nubiaagent.cognitive.voice.VoiceEngine
+import com.nubiaagent.cognitive.voice.VoiceMode
 import com.nubiaagent.perception.vision.ScreenObserver
 import org.json.JSONObject
 
@@ -42,6 +44,7 @@ class ToolExecutor(private val context: Context) {
 
     private var memoryManager: MemoryManager? = null
     private var screenObserver: ScreenObserver? = null
+    private var voiceEngine: VoiceEngine? = null
 
     /**
      * Establece las dependencias del ejecutor.
@@ -49,6 +52,7 @@ class ToolExecutor(private val context: Context) {
      */
     fun setMemoryManager(mm: MemoryManager) { memoryManager = mm }
     fun setScreenObserver(so: ScreenObserver) { screenObserver = so }
+    fun setVoiceEngine(ve: VoiceEngine) { voiceEngine = ve }
 
     /**
      * Ejecuta una herramienta y retorna el resultado.
@@ -519,15 +523,40 @@ class ToolExecutor(private val context: Context) {
     private suspend fun executeVoiceSpeak(params: JSONObject): ToolResult {
         val text = params.optString("text", "")
         if (text.isBlank()) return ToolResult.Failure("Texto vacío", "Se requiere 'text'")
-        val intent = Intent(context, com.nubiaagent.cognitive.voice.VoiceEngine::class.java).apply {
-            action = "SPEAK"
-            putExtra("text", text)
+
+        val ve = voiceEngine
+        if (ve == null) {
+            Log.w(TAG, "VoiceEngine no disponible — no se puede hablar")
+            return ToolResult.Failure("VoiceEngine no inicializado", "voiceEngine es null")
         }
-        return ToolResult.Success("Voz: '$text' (sintetizando...)")
+
+        try {
+            ve.speak(text)
+            Log.i(TAG, "VoiceEngine.speak() invocado: '${text.take(40)}...'")
+            return ToolResult.Success("Voz sintetizada: '$text'")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error en VoiceEngine.speak()", e)
+            return ToolResult.Failure("Error de síntesis de voz", e.message ?: "unknown")
+        }
     }
 
     private fun executeVoiceSetMode(params: JSONObject): ToolResult {
-        val mode = params.optString("mode", "auto")
+        val modeStr = params.optString("mode", "auto")
+        val mode = when (modeStr.lowercase()) {
+            "offline" -> VoiceMode.OFFLINE
+            "cloud" -> VoiceMode.CLOUD
+            "auto" -> VoiceMode.AUTO
+            else -> VoiceMode.AUTO
+        }
+
+        val ve = voiceEngine
+        if (ve == null) {
+            Log.w(TAG, "VoiceEngine no disponible para cambiar modo")
+            return ToolResult.Failure("VoiceEngine no inicializado", "voiceEngine es null")
+        }
+
+        ve.setVoiceMode(mode)
+        Log.i(TAG, "Modo de voz cambiado a: $mode")
         return ToolResult.Success("Modo de voz configurado: $mode")
     }
 

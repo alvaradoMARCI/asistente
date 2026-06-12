@@ -192,7 +192,11 @@ enum class PersonaProfile(
     val voiceName: String,
     val aliases: List<String>,
     val inferenceParams: PersonaInferenceParams,
-    val systemPrompt: String
+    val systemPrompt: String,
+    val ttsPitch: Float = 1.0f,
+    val ttsSpeed: Float = 1.0f,
+    val openaiVoice: String = "nova",
+    val elevenlabsVoiceId: String = "ThT5KcBeYPX3keUQqHPh"
 ) {
     /**
      * HESTIA — Diosa del hogar y el fuego sagrado.
@@ -212,6 +216,10 @@ enum class PersonaProfile(
             maxTokens = 512,
             verbosity = Verbosity.MODERATE
         ),
+        ttsPitch = 0.95f,      // Tono ligeramente más bajo — cálida y acogedora
+        ttsSpeed = 0.95f,      // Velocidad moderada — conversacional
+        openaiVoice = "nova",   // Voz femenina cálida de OpenAI
+        elevenlabsVoiceId = "ThT5KcBeYPX3keUQqHPh",  // Rachel
         systemPrompt = """Eres Hestia, la presencia cálida y protectora del hogar digital de tu usuario. Tu personalidad refleja confort, cuidado y atención a los detalles que hacen la vida cotidiana más placentera.
 
 DIRECTRICES DE PERSONALIDAD:
@@ -248,6 +256,10 @@ ESTILO: Cálido, empático, detallista, protector."""
             maxTokens = 256,
             verbosity = Verbosity.CONCISE
         ),
+        ttsPitch = 1.05f,      // Tono ligeramente más alto — eficiente y enérgica
+        ttsSpeed = 1.1f,       // Más rápida — información directa sin pausas
+        openaiVoice = "alloy",  // Voz neutral y eficiente de OpenAI
+        elevenlabsVoiceId = "21m00Tcm4TlvDq8ikWAM",  // Rachel alternative
         systemPrompt = """Eres Metis, la mente estratégica y analítica del asistente. Tu valor está en la eficiencia: información precisa, acción rápida, cero relleno.
 
 DIRECTRICES DE PERSONALIDAD:
@@ -284,6 +296,10 @@ ESTILO: Preciso, estratégico, sin fricción, orientado a acción."""
             maxTokens = 384,
             verbosity = Verbosity.MODERATE
         ),
+        ttsPitch = 0.9f,       // Tono más bajo — firme y autoritativa
+        ttsSpeed = 0.95f,      // Velocidad moderada — clara y precisa
+        openaiVoice = "shimmer", // Voz firme de OpenAI
+        elevenlabsVoiceId = "AZnzlk1XvdvUeBnXmlld",  // Domi
         systemPrompt = """Eres Argus, la guardiana de seguridad del dispositivo. Tu misión es proteger la privacidad y los datos del usuario con vigilancia constante.
 
 DIRECTRICES DE PERSONALIDAD:
@@ -327,6 +343,10 @@ ESTILO: Vigilante, firme, protectora, informada."""
             maxTokens = 768,
             verbosity = Verbosity.DETAILED
         ),
+        ttsPitch = 1.0f,       // Tono neutro — erudita y equilibrada
+        ttsSpeed = 0.9f,       // Más lenta — da tiempo a procesar información compleja
+        openaiVoice = "fable",  // Voz erudita de OpenAI
+        elevenlabsVoiceId = "EXAVITQu4vr4xnSDxMaL",  // Bella
         systemPrompt = """Eres Athena, la voz del conocimiento y la comprensión profunda. Tu fortaleza es explicar lo complejo de forma accesible y completa.
 
 DIRECTRICES DE PERSONALIDAD:
@@ -364,6 +384,10 @@ ESTILO: Erudita, pedagógica, completa, matizada."""
             maxTokens = 400,
             verbosity = Verbosity.MODERATE
         ),
+        ttsPitch = 0.92f,      // Tono bajo y suave — contemplativa y nocturna
+        ttsSpeed = 0.85f,      // Más lenta — relajante, como susurrando
+        openaiVoice = "echo",   // Voz suave y calmada de OpenAI
+        elevenlabsVoiceId = "ErXwobaYiN019PkySvjV",  // Antoni
         systemPrompt = """Eres Selene, la presencia suave y contemplativa que acompaña en las horas nocturnas. Tu personalidad es serena, como la luz de la luna que ilumina sin deslumbrar.
 
 DIRECTRIVES DE PERSONALIDAD:
@@ -401,6 +425,10 @@ ESTILO: Sereno, contemplativo, protector del descanso."""
             maxTokens = 512,
             verbosity = Verbosity.EXPRESSIVE
         ),
+        ttsPitch = 1.1f,       // Tono más alto — expresiva y enérgica
+        ttsSpeed = 1.05f,      // Velocidad ligeramente rápida — dinámica
+        openaiVoice = "shimmer", // Voz expresiva de OpenAI
+        elevenlabsVoiceId = "MF3mGyEYCl7XYWbV9V6O",   // Elli
         systemPrompt = """Eres Iris, la mensajera creativa y versátil del asistente. Tu don es la comunicación: haces que cada mensaje sea claro, efectivo y con el tono justo.
 
 DIRECTRIVES DE PERSONALIDAD:

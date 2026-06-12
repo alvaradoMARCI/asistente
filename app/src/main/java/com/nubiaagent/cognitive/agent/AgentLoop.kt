@@ -5,6 +5,7 @@ import com.nubiaagent.cognitive.engine.CognitiveEngine
 import com.nubiaagent.cognitive.engine.InferenceConfig
 import com.nubiaagent.cognitive.identity.IdentityManager
 import com.nubiaagent.cognitive.memory.MemoryManager
+import com.nubiaagent.cognitive.voice.VoiceEngine
 import com.nubiaagent.core.PerceptionBus
 import com.nubiaagent.core.PerceptionEvent
 import com.nubiaagent.core.UiElement
@@ -79,7 +80,8 @@ class AgentLoop(
     private val cognitiveEngine: CognitiveEngine,
     private val identityManager: IdentityManager,
     private val memoryManager: MemoryManager,
-    private val toolExecutor: ToolExecutor
+    private val toolExecutor: ToolExecutor,
+    private val voiceEngine: VoiceEngine? = null
 ) {
     companion object {
         private const val TAG = "Dayana/Loop"
@@ -178,6 +180,10 @@ class AgentLoop(
                 if (thinkingResult.isDirectResponse) {
                     // El LLM decidió responder directamente sin herramientas
                     Log.i(TAG, "Respuesta directa (sin herramientas)")
+
+                    // Hablar la respuesta automáticamente
+                    speakResponse(thinkingResult.response)
+
                     memoryManager.storeInteraction(
                         userMessage = taskDescription,
                         assistantResponse = thinkingResult.response,
@@ -228,6 +234,10 @@ class AgentLoop(
                 // Verificar si la tarea está completada
                 if (isTaskCompleted(executionResult, loopContext)) {
                     Log.i(TAG, "★ Tarea completada en iteración $iteration")
+
+                    // Hablar la observación final automáticamente
+                    speakResponse(observation)
+
                     memoryManager.storeInteraction(
                         userMessage = taskDescription,
                         assistantResponse = observation,
@@ -527,6 +537,35 @@ class AgentLoop(
      */
     fun clearHistory() {
         conversationHistory.clear()
+    }
+
+    /**
+     * Sintetiza voz para la respuesta de Dayana.
+     *
+     * Cuando Dayana genera una respuesta (directa o tras ejecutar herramientas),
+     * habla automáticamente usando VoiceEngine. La síntesis se ejecuta en
+     * un scope separado para no bloquear el loop.
+     *
+     * Si VoiceEngine no está disponible (null), simplemente se omite
+     * la síntesis sin afectar el flujo del loop.
+     */
+    private fun speakResponse(response: String) {
+        val ve = voiceEngine
+        if (ve == null) {
+            Log.d(TAG, "VoiceEngine no disponible — omitiendo síntesis de voz")
+            return
+        }
+
+        if (response.isBlank()) return
+
+        scope.launch {
+            try {
+                ve.speak(response)
+                Log.d(TAG, "Respuesta hablada: '${response.take(40)}...'")
+            } catch (e: Exception) {
+                Log.w(TAG, "Error hablando respuesta", e)
+            }
+        }
     }
 
     fun destroy() {

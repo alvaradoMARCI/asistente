@@ -314,7 +314,7 @@ object ToolRegistry {
 
         register(ToolDefinition(
             name = "voice.speak",
-            description = "Sintetizar texto a voz usando Piper TTS (offline) u OpenAI/ElevenLabs (cloud). Usa la voz de la persona activa.",
+            description = "Sintetizar texto a voz usando Android TTS (offline por defecto) u OpenAI/ElevenLabs (cloud). Usa la voz de la persona activa con pitch y velocidad configurables.",
             parameters = """{"text": "string (texto a hablar)", "persona": "string? (persona específica, opcional)", "mode": "string? (offline|cloud|auto, default: auto)"}""",
             risk = ToolRisk.WRITE_SAFE,
             example = "voice.speak(text=\"Buenos días, tu briefing está listo\")",
@@ -323,7 +323,7 @@ object ToolRegistry {
 
         register(ToolDefinition(
             name = "voice.set_mode",
-            description = "Cambiar el modo de voz: offline (Piper 100% privado), cloud (OpenAI/ElevenLabs máxima naturalidad), auto (según conexión).",
+            description = "Cambiar el modo de voz: offline (Android TTS, 100% privado), cloud (OpenAI/ElevenLabs, máxima naturalidad), auto (según conexión).",
             parameters = """{"mode": "string (offline|cloud|auto)"}""",
             risk = ToolRisk.WRITE_SAFE,
             example = "voice.set_mode(mode=\"offline\")",
