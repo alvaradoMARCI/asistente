@@ -582,6 +582,8 @@ class FloatingBubbleMecha : Service() {
                         updateStatus(BubbleStatus.THINKING)
                     is PerceptionEvent.HardwareStateUpdate ->
                         if (event.isBypassCharging) updateStatus(BubbleStatus.BYPASS_CHARGING)
+                    is PerceptionEvent.AgentResponse ->
+                        updateStatus(BubbleStatus.SPEAKING)
                     else -> {}
                 }
             }

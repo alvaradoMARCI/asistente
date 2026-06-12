@@ -1086,6 +1086,10 @@ class OverlayService : Service() {
                             refreshDetailPanel()
                         }
                     }
+
+                    is PerceptionEvent.AgentResponse -> {
+                        updateStatus(AgentStatus.SPEAKING, "Respondiendo: ${event.text.take(40)}...")
+                    }
                 }
             }
         }
