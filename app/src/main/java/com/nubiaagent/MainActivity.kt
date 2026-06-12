@@ -21,7 +21,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import android.app.ProgressDialog
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
 import android.widget.ProgressBar
@@ -814,7 +813,11 @@ class MainActivity : AppCompatActivity() {
             unregisterReceiver(downloadReceiver)
         } catch (_: Exception) { }
         val filter = IntentFilter(VoskModelDownloader.BROADCAST_PROGRESS)
-        registerReceiver(downloadReceiver, filter)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(downloadReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(downloadReceiver, filter)
+        }
 
         // Mostrar UI de progreso si no existe
         if (downloadProgressLayout == null) {

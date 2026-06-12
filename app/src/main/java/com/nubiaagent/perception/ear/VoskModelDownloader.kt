@@ -7,12 +7,12 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.nubiaagent.MainActivity
-import com.nubiaagent.R
 import kotlinx.coroutines.*
 import java.io.*
 import java.net.HttpURLConnection
@@ -130,7 +130,16 @@ class VoskModelDownloader : Service() {
                 return START_NOT_STICKY
             }
             ACTION_START_DOWNLOAD -> {
-                startForeground(NOTIFICATION_ID, buildNotification("Preparando descarga...", 0))
+                val notification = buildNotification("Preparando descarga...", 0)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                    )
+                } else {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
                 startDownload()
             }
         }

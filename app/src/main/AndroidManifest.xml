@@ -186,6 +186,9 @@
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:stopWithTask="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Downloads Vosk speech recognition models (~1.4GB) for offline voice assistant; requires foreground to prevent OS killing the download" />
             <intent-filter>
                 <action android:name="com.nubiaagent.action.START_VOSK_DOWNLOAD" />
                 <action android:name="com.nubiaagent.action.CANCEL_VOSK_DOWNLOAD" />
@@ -270,6 +273,9 @@
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:stopWithTask="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Runs AI inference engine for voice assistant; requires foreground to maintain model loaded in RAM and prevent OS killing during inference" />
             <intent-filter>
                 <action android:name="com.nubiaagent.action.INITIALIZE_ENGINE" />
                 <action android:name="com.nubiaagent.action.SHUTDOWN_ENGINE" />
@@ -287,6 +293,9 @@
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:stopWithTask="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Displays floating overlay for assistant responses; requires foreground for SYSTEM_ALERT_WINDOW and to persist across app switches" />
             <intent-filter>
                 <action android:name="com.nubiaagent.action.SHOW_OVERLAY" />
                 <action android:name="com.nubiaagent.action.HIDE_OVERLAY" />
@@ -304,6 +313,9 @@
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:stopWithTask="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Floating bubble interface for voice assistant; requires foreground for persistent overlay and visual state feedback" />
             <intent-filter>
                 <action android:name="com.nubiaagent.action.SHOW_BUBBLE" />
                 <action android:name="com.nubiaagent.action.HIDE_BUBBLE" />
@@ -320,6 +332,9 @@
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:stopWithTask="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Canvas controller for assistant web views; requires foreground for persistent overlay content display" />
             <intent-filter>
                 <action android:name="com.nubiaagent.action.SHOW_CANVAS" />
                 <action android:name="com.nubiaagent.action.HIDE_CANVAS" />
@@ -337,6 +352,9 @@
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:stopWithTask="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Live Island notification interface for assistant; requires foreground for persistent visual feedback bar" />
             <intent-filter>
                 <action android:name="com.nubiaagent.action.SHOW_LIVE_ISLAND" />
                 <action android:name="com.nubiaagent.action.UPDATE_LIVE_ISLAND" />

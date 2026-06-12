@@ -79,36 +79,40 @@ jobs:
             app/build/outputs/apk/release/dayana-v4-release.apk
             app/build/outputs/apk/release/dayana-v4-release-unsigned.apk
 
+      - name: Generate tag name
+        id: tag
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "tag_name=dayana-v4.3-build-${TIMESTAMP}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
       - name: Create Release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: dayana-v4.2-voice
-          name: "Dayana v4.2 - Voz Funcional + Fallback Multi-API"
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          name: "Dayana v4.3 - Voz + Descarga de Modelos Vosk"
           body: |
-            ## Dayana v4.2 - Asistente con Voz Funcional
+            ## Dayana v4.3 - Asistente con Voz + Descarga Automática de Modelos
+
+            ### Novedades en v4.3 - Descarga de Modelos Vosk
+            - **VoskModelDownloader**: Descarga automática de modelos de voz desde la app
+            - **Modelo small (50MB)**: Para detección de wake word
+            - **Modelo full (1.3GB)**: Para transcripción de comandos
+            - **UI de progreso**: Barra de descarga + notificación persistente
+            - **Reinicio automático**: Al completar descarga, servicios se inician solos
+            - **Compatible Android 14**: `startForeground()` con ServiceInfo y PROPERTY_SPECIAL_USE_FGS_SUBTYPE
 
             ### Novedades en v4.2 - Sistema de Voz
             - **Android TTS nativo**: Voz offline 100% funcional sin internet
             - **6 personas con voz única**: HESTIA, METIS, ARGUS, ATHENA, SELENE, IRIS
-            - **Parámetros por persona**: pitch, velocidad, voz OpenAI, voz ElevenLabs
-            - **Auto-speak**: Dayana habla automáticamente al responder
             - **3 modos de voz**: OFFLINE (Android TTS), CLOUD (OpenAI/ElevenLabs), AUTO
-            - **MediaPlayer para cloud TTS**: Reproducción MP3 correcta
-            - **Arquitectura Piper-ready**: Preparado para Piper ONNX futuro
+            - **Pipeline interconectado**: VoiceCommandOrchestrator + AgentThought events
 
             ### Sistema de Fallback Multi-API
             - Gemini → Groq → OpenAI (automático)
             - 3 API keys preconfiguradas y encriptadas (AES-256-GCM)
             - Wake words: "Hey Dayana", "Hey Marcia", "Hey Nubia"
-
-            ### Proveedores de Voz
-            | Proveedor | Tipo | Requiere Internet | Calidad |
-            |-----------|------|-------------------|---------|
-            | Android TTS | Offline | No | Media-Alta |
-            | OpenAI TTS | Cloud | Si | Alta |
-            | ElevenLabs | Cloud | Si | Muy Alta |
-            | Piper ONNX | Offline | No | Media (futuro) |
           draft: false
           prerelease: false
           files: |
