@@ -69,6 +69,9 @@ enum class AgentStatus(
     /** El agente espera confirmación del usuario. */
     WAITING_CONFIRMATION("Esperando confirmación...", 0xFFFFC107.toInt()), // Amarillo
 
+    /** El agente está hablando la respuesta. */
+    SPEAKING("Hablando...", 0xFF9C27B0.toInt()),           // Púrpura
+
     /** El agente está ejecutando una acción. */
     EXECUTING("Ejecutando...", 0xFF2196F3.toInt()),        // Azul
 
